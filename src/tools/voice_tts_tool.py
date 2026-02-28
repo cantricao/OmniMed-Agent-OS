@@ -19,7 +19,7 @@ except ImportError:
 # =====================================================================
 # Define the HuggingFace repository ID for VoxCPM
 # Change this if you are using a specific or fine-tuned variant
-HF_REPO_ID = "Boya-S/VoxCPM"
+HF_REPO_ID = "JayLL13/VoxCPM-1.5-VN"
 LOCAL_MODEL_DIR = "data/models/voxcpm"
 
 def ensure_model_downloaded() -> str:

@@ -13,11 +13,10 @@ chromadb
 docling
 
 # Voice & API
-gradio-client
-torchaudio
+voxcpm 
+torchcodec==0.9
 
 # Data Processing
 pandas
 datasets
 huggingface_hub
-
