@@ -35,7 +35,7 @@ def vision_node(state: MedicalState):
         print("⚠️ [Vision Node] No valid document provided. Skipping OCR.")
         return {"ocr_extracted_text": "No document attached."}
     
-    ocr_result = extract_medical_document_ocr.invoke({"image_path": doc_path})
+    ocr_result = extract_medical_document_ocr.invoke({"file_path": doc_path})
     return {"ocr_extracted_text": ocr_result}
 
 def rag_node(state: MedicalState):
