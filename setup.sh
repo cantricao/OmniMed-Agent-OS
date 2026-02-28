@@ -17,4 +17,8 @@ sudo apt-get install -y ffmpeg
 echo "🐍 [Setup] Installing Python dependencies..."
 pip install -r requirements.txt -q
 
+# 3. Dynamically install Unsloth based on environment
+echo "🦥 [Setup] Triggering dynamic Unsloth installation..."
+python scripts/install_unsloth.py
+
 echo "✅ [Setup] Environment is fully prepared. You can now launch the application!"
