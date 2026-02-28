@@ -1,8 +1,8 @@
 import os
 import pandas as pd
 from langchain_core.documents import Document 
-from langchain_community.vectorstores import Chroma
-# [FIXED] Updated to use the dedicated langchain_huggingface package
+# [FIXED] Updated to use the dedicated langchain-chroma package
+from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 
 # =====================================================================
@@ -12,15 +12,13 @@ from langchain_huggingface import HuggingFaceEmbeddings
 def ingest_real_vietnamese_medical_data():
     print("🚀 [Data Ingestion] Starting real medical data ingestion into Vector DB...")
     
-    # 1. Initialize the official BKAI Embedding Model (Vietnamese native model)
     print("🧠 [Data Ingestion] Loading bkai-foundation-models/vietnamese-bi-encoder...")
     embeddings = HuggingFaceEmbeddings(
         model_name="bkai-foundation-models/vietnamese-bi-encoder",
-        model_kwargs={'device': 'cuda'}, # Force GPU for faster embedding
+        model_kwargs={'device': 'cuda'},
         encode_kwargs={'normalize_embeddings': True}
     )
     
-    # 2. Verify and read the downloaded real dataset
     data_path = "data/vietnamese_med_corpus/vihealth_qa.csv"
     
     if not os.path.exists(data_path):
@@ -31,7 +29,6 @@ def ingest_real_vietnamese_medical_data():
     print(f"📖 [Data Ingestion] Reading real medical dataset from: {data_path}...")
     df = pd.read_csv(data_path)
     
-    # Take the first 500 records for testing
     sample_df = df.head(500) 
     
     docs = []
@@ -45,7 +42,6 @@ def ingest_real_vietnamese_medical_data():
         content = f"Question/Symptom: {question}\nAnalysis/Answer: {answer}"
         docs.append(Document(page_content=content, metadata={"source": "ViHealthQA", "record_id": str(index)}))
         
-    # 3. Inject the formatted documents into ChromaDB
     print(f"💾 [Data Ingestion] Persisting {len(docs)} medical records into ChromaDB...")
     db = Chroma.from_documents(
         documents=docs,

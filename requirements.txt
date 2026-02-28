@@ -3,6 +3,7 @@ langchain
 langgraph
 langchain-community
 langchain-huggingface
+langchain-chroma
 
 # RAG & Embeddings
 sentence-transformers
@@ -20,10 +21,3 @@ pandas
 datasets
 huggingface_hub
 
-# Quantization & Acceleration (Unsloth is installed separately via specific Colab wheel)
-unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
-xformers 
-trl
-bitsandbytes
-accelerate
-peft
