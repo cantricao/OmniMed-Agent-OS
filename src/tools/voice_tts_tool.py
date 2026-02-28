@@ -1,24 +1,47 @@
 import os
 import torch
 import torchaudio
+from huggingface_hub import snapshot_download
 from langchain.tools import tool
 
 # =====================================================================
 # MODULE IMPORT
 # =====================================================================
 # Attempt to import the core Voice Cloning module from your local directory. 
-# Adjust 'VoxCPMModel' or 'VoxCPMDemo' based on the exact class name in your project.
+# Adjust 'VoxCPMModel' based on the exact class name in your project.
 try:
     from voxcpm import VoxCPMModel 
 except ImportError:
     print("⚠️ WARNING: VoxCPM core libraries are not installed in this environment.")
 
 # =====================================================================
+# MODEL DOWNLOAD & SETUP CONFIGURATION
+# =====================================================================
+# Define the HuggingFace repository ID for VoxCPM
+# Change this if you are using a specific or fine-tuned variant
+HF_REPO_ID = "Boya-S/VoxCPM"
+LOCAL_MODEL_DIR = "data/models/voxcpm"
+
+def ensure_model_downloaded() -> str:
+    """
+    Downloads the VoxCPM model checkpoints from Hugging Face if they are not 
+    already present locally. This prevents re-downloading large files on every run.
+    """
+    # Check if directory exists and is not empty
+    if not os.path.exists(LOCAL_MODEL_DIR) or not os.listdir(LOCAL_MODEL_DIR):
+        print(f"📥 [Voice Setup] Downloading VoxCPM weights from Hugging Face ({HF_REPO_ID})...")
+        os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
+        # Download the model weights and configuration files
+        snapshot_download(repo_id=HF_REPO_ID, local_dir=LOCAL_MODEL_DIR)
+        print("✅ [Voice Setup] Model checkpoints downloaded successfully.")
+    else:
+        print("✅ [Voice Setup] Local model checkpoint found. Skipping download.")
+        
+    return LOCAL_MODEL_DIR
+
+# =====================================================================
 # DIRECT TTS TOOL (VoxCPM Local Inference with Dynamic VRAM Management)
 # =====================================================================
-# This setup strictly loads the model ONLY when triggered, generates the audio,
-# and forcefully purges the VRAM immediately after to prevent Out-of-Memory (OOM) 
-# crashes when running alongside the LLM and Vision models on a 16GB T4 GPU.
 
 @tool
 def generate_clinical_voice_alert(clinical_note: str) -> str:
@@ -34,18 +57,18 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
     """
     try:
         print(f"🎙️ [Voice Node] Initiating local TTS synthesis...")
-        print("🧹 [Memory Manager] Clearing VRAM to prepare for VoxCPM...")
         
+        # 0. Ensure the model is downloaded and get the correct path
+        checkpoint_path = ensure_model_downloaded()
+        
+        print("🧹 [Memory Manager] Clearing VRAM to prepare for VoxCPM...")
         # 1. Forcefully release unreferenced GPU memory from previous nodes (Vision/LLM)
         torch.cuda.empty_cache() 
         
         # 2. Dynamically load the VoxCPM model into GPU ONLY when called
         print("📥 [Voice Node] Loading VoxCPM model into GPU. This may take a moment...")
         
-        # NOTE: Ensure the checkpoint path matches your local setup
-        checkpoint_path = "path/to/your/voxcpm/checkpoint" 
-        
-        # Instantiate the model. (Adjust class name if it differs in your local module)
+        # Instantiate the model from the local downloaded path
         current_model = VoxCPMModel.from_pretrained(checkpoint_path).to("cuda")
         
         # Ensure the output directory exists
@@ -56,7 +79,6 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
         # 3. Execute the inference to generate speech
         print(f"🔊 [Voice Node] Synthesizing audio for: '{clinical_note[:50]}...'")
         
-        # Using the exact .generate() method structure discovered in the Colab notebook
         wav_tensor = current_model.generate(
             text=clinical_note,
             cfg_value=2.0,                  # Control scale for generation quality
