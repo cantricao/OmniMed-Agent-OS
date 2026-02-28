@@ -18,6 +18,9 @@ class MedicalState(TypedDict):
     doctor_query: str
     patient_id: Optional[str]
     document_path: Optional[str]
+    # [NEW] Voice Cloning parameters
+    prompt_wav_path: Optional[str]
+    prompt_text: Optional[str]
     
     ocr_extracted_text: Optional[str]
     rag_clinical_context: Optional[str]
@@ -59,16 +62,28 @@ def reasoning_node(state: MedicalState):
         "final_diagnosis": llm_result.get("final_diagnosis", "Failed to generate UI report."),
         "voice_summary": llm_result.get("voice_summary", "Báo cáo đã sẵn sàng.")
     }
-
+    
 def voice_node(state: MedicalState):
     print("\n▶️ [STEP 4] EXECUTING VOICE ALERT NODE...")
-    
-    # Extract ONLY the pure Vietnamese summary for the TTS engine
     text_to_speak = state.get("voice_summary", "Báo cáo đã sẵn sàng.")
-    print(f"🔊 [Voice Node] Synthesizing audio for TTS: '{text_to_speak}'")
     
-    audio_path = generate_clinical_voice_alert.invoke({"clinical_note": text_to_speak})
+    # Retrieve voice cloning parameters if they exist
+    ref_wav = state.get("prompt_wav_path")
+    ref_text = state.get("prompt_text")
+    
+    if ref_wav and ref_text:
+         print("🎙️ [Voice Node] Voice Cloning Activated using reference audio.")
+    else:
+         print(f"🔊 [Voice Node] Synthesizing standard audio for TTS: '{text_to_speak}'")
+    
+    # Pass all arguments into the LangChain tool
+    audio_path = generate_clinical_voice_alert.invoke({
+        "clinical_note": text_to_speak,
+        "prompt_wav_path": ref_wav,
+        "prompt_text": ref_text
+    })
     return {"voice_alert_path": audio_path}
+
 
 # =====================================================================
 # 3. BUILD AND COMPILE THE LANGGRAPH WORKFLOW

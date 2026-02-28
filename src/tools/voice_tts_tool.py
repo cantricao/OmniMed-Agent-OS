@@ -17,7 +17,7 @@ HF_REPO_ID = "JayLL13/VoxCPM-1.5-VN"
 # =====================================================================
 
 @tool
-def generate_clinical_voice_alert(clinical_note: str) -> str:
+def generate_clinical_voice_alert(clinical_note: str, prompt_wav_path: str = None, prompt_text: str = None) -> str:
     """
     Use this tool STRICTLY when you need to broadcast a clinical warning, 
     drug interaction alert, or medical summary to the doctor via voice.
@@ -54,8 +54,8 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
         
         wav = current_model.generate(
             text= clinical_note,
-            prompt_wav_path=None,      # optional: path to a prompt speech for voice cloning
-            prompt_text=None,          # optional: reference text
+            prompt_wav_path=prompt_wav_path if prompt_wav_path else None,      # optional: path to a prompt speech for voice cloning
+            prompt_text=prompt_text if prompt_text else None,          # optional: reference text
             cfg_value=2.0,             # LM guidance on LocDiT, higher for better adherence to the prompt, but maybe worse
             inference_timesteps=10,   # LocDiT inference timesteps, higher for better result, lower for fast speed
             normalize=False,           # enable external TN tool, but will disable native raw text support
