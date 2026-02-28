@@ -76,7 +76,7 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
         torch.cuda.empty_cache()
         
         print(f"✅ [Voice Node] Alert successfully generated at {output_file}")
-        return f"SUCCESS: Voice alert generated. Audio file saved at: {output_file}"
+        return output_file
         
     except Exception as e:
         # Emergency VRAM cleanup in case of failure (e.g., OOM error during synthesis)

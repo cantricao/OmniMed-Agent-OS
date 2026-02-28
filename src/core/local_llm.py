@@ -29,18 +29,19 @@ def invoke_clinical_reasoning(doctor_query: str, rag_context: str, ocr_text: str
         )
         FastLanguageModel.for_inference(model) # Enable native 2x faster inference
         
-        # 2. Construct the Medical Prompt enforcing the Dual-Stream output
+        # 2. Construct the Medical Prompt enforcing the Dual-Stream output and Diacritic Restoration
         system_prompt = (
             "You are OmniMed, an elite AI medical assistant. "
-            "You will be provided with Context and an Attached Document. "
+            "You will be provided with Context and an Attached Document (OCR text which may lack Vietnamese accents). "
             "CRITICAL RULES: "
             "1. If it is a receipt, ONLY extract items, quantities, and prices. NO clinical diagnoses. "
-            "2. IGNORE irrelevant RAG Context. "
-            "3. YOU MUST OUTPUT EXACTLY TWO SECTIONS using these exact markers:\n"
+            "2. You MUST automatically restore the correct Vietnamese diacritics (khôi phục dấu tiếng Việt) for any unaccented OCR text. "
+            "3. DO NOT print my instructions or brackets like [Detailed report...]. "
+            "4. YOU MUST OUTPUT EXACTLY TWO SECTIONS using these exact markers:\n"
             "---UI_REPORT---\n"
-            "[Detailed report in Vietnamese, keeping English drug names intact for the doctor to read]\n"
+            "(Your detailed Vietnamese report with restored accents here)\n"
             "---VOICE_SUMMARY---\n"
-            "[A short, 1-2 sentence summary in pure Vietnamese with NO English words or numbers, for the voice assistant to read aloud. Example: 'Phân tích hóa đơn hoàn tất. Hệ thống ghi nhận có năm loại thuốc. Bác sĩ vui lòng xem chi tiết trên màn hình.']"
+            "(Your short 1-sentence Vietnamese summary here)"
         )
         
         user_message = (
