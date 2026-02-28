@@ -3,6 +3,7 @@ import torch
 from langchain.tools import tool
 import soundfile as sf
 from voxcpm import VoxCPM
+from typing import Optional
 
 # =====================================================================
 # MODEL DOWNLOAD & SETUP CONFIGURATION
@@ -17,16 +18,15 @@ HF_REPO_ID = "JayLL13/VoxCPM-1.5-VN"
 # =====================================================================
 
 @tool
-def generate_clinical_voice_alert(clinical_note: str, prompt_wav_path: str = None, prompt_text: str = None) -> str:
+def generate_clinical_voice_alert(clinical_note: str, prompt_wav_path: Optional[str] = None, prompt_text: Optional[str] = None) -> str:
     """
-    Use this tool STRICTLY when you need to broadcast a clinical warning, 
-    drug interaction alert, or medical summary to the doctor via voice.
+    Use this tool to synthesize a voice alert from the clinical reasoning text.
+    Can also clone a specific voice if reference audio and text are provided.
     
     Args:
-        clinical_note (str): The medical text (Vietnamese) to be synthesized into speech.
-        
-    Returns:
-        str: A confirmation message containing the absolute path to the generated audio file.
+        clinical_note (str): The clinical summary or alert text to be spoken.
+        prompt_wav_path (Optional[str]): Path to a reference audio file for voice cloning.
+        prompt_text (Optional[str]): The exact transcript of the reference audio.
     """
     try:
         print(f"🎙️ [Voice Node] Initiating local TTS synthesis...")
