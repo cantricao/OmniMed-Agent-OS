@@ -1,19 +1,8 @@
 import os
 import torch
-import torchaudio
-from huggingface_hub import snapshot_download
 from langchain.tools import tool
-
-# =====================================================================
-# MODULE IMPORT
-# =====================================================================
-# Attempt to import the core Voice Cloning module from your local directory. 
-# Adjust 'VoxCPMModel' based on the exact class name in your project.
-try:
-    from voxcpm import VoxCPMModel
-    import soundfile as sf
-except ImportError:
-    print("⚠️ WARNING: VoxCPM core libraries are not installed in this environment.")
+import soundfile as sf
+from voxcpm import VoxCPM
 
 # =====================================================================
 # MODEL DOWNLOAD & SETUP CONFIGURATION
@@ -21,24 +10,7 @@ except ImportError:
 # Define the HuggingFace repository ID for VoxCPM
 # Change this if you are using a specific or fine-tuned variant
 HF_REPO_ID = "JayLL13/VoxCPM-1.5-VN"
-LOCAL_MODEL_DIR = "data/models/voxcpm"
 
-def ensure_model_downloaded() -> str:
-    """
-    Downloads the VoxCPM model checkpoints from Hugging Face if they are not 
-    already present locally. This prevents re-downloading large files on every run.
-    """
-    # Check if directory exists and is not empty
-    if not os.path.exists(LOCAL_MODEL_DIR) or not os.listdir(LOCAL_MODEL_DIR):
-        print(f"📥 [Voice Setup] Downloading VoxCPM weights from Hugging Face ({HF_REPO_ID})...")
-        os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
-        # Download the model weights and configuration files
-        snapshot_download(repo_id=HF_REPO_ID, local_dir=LOCAL_MODEL_DIR)
-        print("✅ [Voice Setup] Model checkpoints downloaded successfully.")
-    else:
-        print("✅ [Voice Setup] Local model checkpoint found. Skipping download.")
-        
-    return LOCAL_MODEL_DIR
 
 # =====================================================================
 # DIRECT TTS TOOL (VoxCPM Local Inference with Dynamic VRAM Management)
@@ -70,7 +42,7 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
         print("📥 [Voice Node] Loading VoxCPM model into GPU. This may take a moment...")
         
         # Instantiate the model from the local downloaded path
-        current_model = VoxCPMModel.from_pretrained(HF_REPO_ID).to("cuda")
+        current_model = VoxCPM.from_pretrained(HF_REPO_ID)
         
         # Ensure the output directory exists
         output_dir = "data/voice_alerts"
@@ -82,8 +54,8 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
         
         wav = current_model.generate(
             text= clinical_note,
-            prompt_wav_path="data/voice_alerts/sample.wav",      # optional: path to a prompt speech for voice cloning
-            prompt_text="Ai đây tức là một kẻ ăn mày vậy. Anh ta chưa kịp quay đi thì đã thấy mấy con chó vàng chạy xồng xộc ra cứ nhảy xổ vào chân anh.",          # optional: reference text
+            prompt_wav_path=None,      # optional: path to a prompt speech for voice cloning
+            prompt_text=None,          # optional: reference text
             cfg_value=2.0,             # LM guidance on LocDiT, higher for better adherence to the prompt, but maybe worse
             inference_timesteps=10,   # LocDiT inference timesteps, higher for better result, lower for fast speed
             normalize=False,           # enable external TN tool, but will disable native raw text support
