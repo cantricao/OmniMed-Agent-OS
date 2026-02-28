@@ -20,3 +20,6 @@ torchcodec==0.9
 pandas
 datasets
 huggingface_hub
+
+# Graphics
+gradio
