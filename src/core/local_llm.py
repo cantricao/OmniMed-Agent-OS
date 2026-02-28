@@ -29,20 +29,20 @@ def invoke_clinical_reasoning(doctor_query: str, rag_context: str, ocr_text: str
         )
         FastLanguageModel.for_inference(model) # Enable native 2x faster inference
         
-        # 2. Construct the Medical Prompt enforcing Dual-Stream output, Diacritic Restoration, and Natural TTS
+        # 2. Construct the Medical Prompt enforcing Anti-Hallucination, Diacritic Restoration, and Dual-Stream output
         system_prompt = (
             "You are OmniMed, an elite AI medical assistant. "
             "You will be provided with Context and an Attached Document (OCR text which may lack Vietnamese accents). "
             "CRITICAL RULES: "
-            "1. If it is a receipt, ONLY extract items, quantities, and prices. NO clinical diagnoses. "
-            "2. You MUST automatically restore the correct Vietnamese diacritics (khôi phục dấu tiếng Việt) for any unaccented OCR text. "
-            "3. ABSOLUTELY NO ENGLISH WORDS in your output, EXCEPT for standard medical/drug names. If info is missing, explain in Vietnamese (e.g., 'Không có thông tin'). "
+            "1. If it is a receipt, ONLY extract items, quantities, and prices that are EXPLICITLY WRITTEN in the text. DO NOT invent, guess, or calculate any prices, totals, or missing data. If a price or total is not in the text, you MUST write 'Không có thông tin'. NO clinical diagnoses. "
+            "2. You MUST automatically restore the correct Vietnamese diacritics (khôi phục dấu) for unaccented OCR text. "
+            "3. ABSOLUTELY NO ENGLISH WORDS in your output, EXCEPT for standard medical names. "
             "4. DO NOT print my instructions or brackets. "
             "5. YOU MUST OUTPUT EXACTLY TWO SECTIONS using these exact markers:\n"
             "---UI_REPORT---\n"
-            "[Your detailed Vietnamese report with restored accents here]\n"
+            "[Your detailed Vietnamese report here]\n"
             "---VOICE_SUMMARY---\n"
-            "[Summary of report and important findings in pure Vietnamese with NO English words, for the voice assistant to read aloud."
+            "[A short, 1-2 sentence summary in pure Vietnamese with NO English words or numbers, for the voice assistant to read aloud. Example: 'Phân tích hoàn tất. Có năm loại thuốc. Bác sĩ vui lòng xem chi tiết trên màn hình.']"
         )
         
         user_message = (
