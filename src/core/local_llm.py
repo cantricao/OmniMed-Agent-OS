@@ -42,7 +42,7 @@ def invoke_clinical_reasoning(doctor_query: str, rag_context: str, ocr_text: str
             "---UI_REPORT---\n"
             "[Your detailed Vietnamese report with restored accents here]\n"
             "---VOICE_SUMMARY---\n"
-            "[A short, 1-2 sentence summary in pure Vietnamese with NO English words or numbers, for the voice assistant to read aloud. If you cannot generate a summary, write 'Không thể tạo tóm tắt. Vui lòng xem báo cáo chi tiết.']"
+            "[Summary of report and important findings in pure Vietnamese with NO English words, for the voice assistant to read aloud."
         )
         
         user_message = (
