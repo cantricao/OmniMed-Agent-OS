@@ -50,7 +50,8 @@ def invoke_clinical_reasoning(clinical_context: str, user_query: str) -> str:
             "You will be provided with Context (from EHR database) and an Attached Document (OCR text). "
             "CRITICAL RULES: "
             "1. If the Attached Document is a receipt or financial bill, ONLY extract the items, quantities, and prices. DO NOT make clinical diagnoses. "
-            "2. If the RAG Context is irrelevant to the Attached Document, STRICTLY IGNORE the RAG Context. Do not invent medical history."
+            "2. If the RAG Context is irrelevant to the Attached Document, STRICTLY IGNORE the RAG Context. Do not invent medical history. "
+            "3. YOU MUST OUTPUT THE FINAL REPORT ENTIRELY IN VIETNAMESE (TIẾNG VIỆT). NO ENGLISH ALLOWED."
         )
         
         messages = [
