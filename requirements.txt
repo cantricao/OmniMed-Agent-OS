@@ -7,7 +7,6 @@ langchain-huggingface
 # RAG & Embeddings
 sentence-transformers
 chromadb
-pysqlite3-binary # Fallback fix for ChromaDB SQLite issues on Linux
 
 # Vision & Document Parsing
 docling
@@ -22,6 +21,9 @@ datasets
 huggingface_hub
 
 # Quantization & Acceleration (Unsloth is installed separately via specific Colab wheel)
+unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
+xformers 
+trl<0.9.0
 bitsandbytes
 accelerate
-unsloth
+peft
