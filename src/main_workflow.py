@@ -1,4 +1,5 @@
-import unsloth
+# AVOID PATCHING ERROR (KEYERROR)
+import unsloth 
 
 import os
 from typing import TypedDict, Optional
@@ -13,8 +14,6 @@ from src.core.local_llm import invoke_clinical_reasoning
 # =====================================================================
 # 1. DEFINE THE GRAPH STATE
 # =====================================================================
-# This dictionary carries the data through the pipeline from node to node.
-
 class MedicalState(TypedDict):
     doctor_query: str
     patient_id: Optional[str]
@@ -22,75 +21,72 @@ class MedicalState(TypedDict):
     
     ocr_extracted_text: Optional[str]
     rag_clinical_context: Optional[str]
-    final_diagnosis: Optional[str]
+    final_diagnosis: Optional[str]    # UI Stream (Detailed, retains English medical terms)
+    voice_summary: Optional[str]      # Voice Stream (Strictly pure Vietnamese phonetics)
     voice_alert_path: Optional[str]
-    
-# =====================================================================
-# 2. DEFINE THE PROCESSING NODES
-# =====================================================================
 
-def vision_node(state: MedicalState) -> MedicalState:
-    """Processes medical documents or test results using Docling OCR."""
+# =====================================================================
+# 2. DEFINE THE GRAPH NODES
+# =====================================================================
+def vision_node(state: MedicalState):
     print("\n▶️ [STEP 1] EXECUTING VISION NODE...")
-    if state.get("document_path"):
-        result = extract_medical_document_ocr.invoke(state["document_path"])
-        state["ocr_extracted_text"] = result
-    else:
-        print("⏭️ No document provided. Skipping Vision Node.")
-        state["ocr_extracted_text"] = "No external medical documents provided."
-    return state
+    doc_path = state.get("document_path")
+    if not doc_path or not os.path.exists(doc_path):
+        print("⚠️ [Vision Node] No valid document provided. Skipping OCR.")
+        return {"ocr_extracted_text": "No document attached."}
+    
+    ocr_result = extract_medical_document_ocr.invoke({"image_path": doc_path})
+    return {"ocr_extracted_text": ocr_result}
 
-def rag_node(state: MedicalState) -> MedicalState:
-    """Retrieves patient history from the local ChromaDB (Vietnamese EHR)."""
+def rag_node(state: MedicalState):
     print("\n▶️ [STEP 2] EXECUTING RAG NODE...")
-    # Search the vector database using the doctor's initial query
-    result = search_patient_records.invoke(state["doctor_query"])
-    state["rag_clinical_context"] = result
-    return state
+    query = state.get("doctor_query", "")
+    rag_result = search_patient_records.invoke({"query": query})
+    return {"rag_clinical_context": rag_result}
 
-def reasoning_node(state: MedicalState) -> MedicalState:
-    """Loads Llama-3 to analyze OCR and RAG data, then purges VRAM."""
+def reasoning_node(state: MedicalState):
     print("\n▶️ [STEP 3] EXECUTING CLINICAL REASONING NODE...")
     
-    # Combine the data for the LLM context
-    combined_context = f"--- RAG EHR DATA ---\n{state.get('rag_clinical_context', '')}\n\n"
-    combined_context += f"--- OCR DOCUMENT DATA ---\n{state.get('ocr_extracted_text', '')}"
+    # Invoke the LLM to generate the Dual-Stream output
+    llm_result = invoke_clinical_reasoning.invoke({
+        "doctor_query": state.get("doctor_query"),
+        "rag_context": state.get("rag_clinical_context"),
+        "ocr_text": state.get("ocr_extracted_text")
+    })
     
-    # Invoke the dynamically loaded Llama-3 model
-    diagnosis = invoke_clinical_reasoning(combined_context, state["doctor_query"])
-    state["final_diagnosis"] = diagnosis
-    return state
+    # Safely extract both streams from the returned dictionary
+    return {
+        "final_diagnosis": llm_result.get("final_diagnosis", "Failed to generate UI report."),
+        "voice_summary": llm_result.get("voice_summary", "Báo cáo đã sẵn sàng.")
+    }
 
-def voice_node(state: MedicalState) -> MedicalState:
-    """Generates an audio alert for the doctor using local VoxCPM."""
+def voice_node(state: MedicalState):
     print("\n▶️ [STEP 4] EXECUTING VOICE ALERT NODE...")
-    if state.get("final_diagnosis"):
-        # Create a concise version of the diagnosis for the voice alert
-        voice_prompt = state["final_diagnosis"][:200] + "... (Please check the screen for full details)."
-        alert_path = generate_clinical_voice_alert.invoke(voice_prompt)
-        state["voice_alert_path"] = alert_path
-    return state
+    
+    # Extract ONLY the pure Vietnamese summary for the TTS engine
+    text_to_speak = state.get("voice_summary", "Báo cáo đã sẵn sàng.")
+    print(f"🔊 [Voice Node] Synthesizing audio for TTS: '{text_to_speak}'")
+    
+    audio_path = generate_clinical_voice_alert.invoke({"text": text_to_speak})
+    return {"voice_alert_path": audio_path}
 
 # =====================================================================
 # 3. BUILD AND COMPILE THE LANGGRAPH WORKFLOW
 # =====================================================================
-print("🏗️ Building the OmniMed-Agent-OS LangGraph pipeline...")
 workflow = StateGraph(MedicalState)
 
-# Add nodes to the graph
-workflow.add_node("vision_processing", vision_node)
-workflow.add_node("ehr_retrieval", rag_node)
-workflow.add_node("clinical_reasoning", reasoning_node)
-workflow.add_node("voice_alert", voice_node)
+workflow.add_node("Vision_OCR", vision_node)
+workflow.add_node("EHR_RAG", rag_node)
+workflow.add_node("Clinical_Reasoning", reasoning_node)
+workflow.add_node("Voice_Alert", voice_node)
 
-# Define the strict deterministic control flow (Sequential)
-workflow.set_entry_point("vision_processing")
-workflow.add_edge("vision_processing", "ehr_retrieval")
-workflow.add_edge("ehr_retrieval", "clinical_reasoning")
-workflow.add_edge("clinical_reasoning", "voice_alert")
-workflow.add_edge("voice_alert", END)
+# Define the strict deterministic pipeline
+workflow.set_entry_point("Vision_OCR")
+workflow.add_edge("Vision_OCR", "EHR_RAG")
+workflow.add_edge("EHR_RAG", "Clinical_Reasoning")
+workflow.add_edge("Clinical_Reasoning", "Voice_Alert")
+workflow.add_edge("Voice_Alert", END)
 
-# Compile the graph into a runnable application
 omnimed_app = workflow.compile()
 
 # =====================================================================
@@ -105,17 +101,22 @@ if __name__ == "__main__":
     test_state = {
         "doctor_query": "Đây là hóa đơn thanh toán của bệnh nhân. Hãy trích xuất danh sách các mặt hàng/dịch vụ, đơn giá tương ứng và tổng số tiền phải thanh toán từ hình ảnh này.",
         "patient_id": "BN_001",
-        "document_path": "data/images/test_receipt.jpg" # Strictly points to the downloaded repo file
+        "document_path": "data/images/test_receipt.jpg" 
     }
     
     print(f"👨‍⚕️ DOCTOR's QUERY: {test_state['doctor_query']}")
     print(f"📄 DOCUMENT ATTACHED: {test_state['document_path']}\n")
     
-    # Execute the graph
+    # Execute the graph workflow
     final_state = omnimed_app.invoke(test_state)
     
     print("\n" + "="*50)
-    print("📋 OMNIMED FINAL CLINICAL REPORT")
+    print("📋 OMNIMED FINAL CLINICAL REPORT (UI)")
     print("="*50)
-    print(final_state["final_diagnosis"])
-    print("\n🔊 AUDIO ALERT STATUS:", final_state.get("voice_alert_path", "No audio generated."))
+    print(final_state.get("final_diagnosis"))
+    
+    print("\n" + "="*50)
+    print("🔊 OMNIMED VOICE SUMMARY (TTS)")
+    print("="*50)
+    print(final_state.get("voice_summary"))
+    print(f"\n🎙️ AUDIO ALERT STATUS: {final_state.get('voice_alert_path', 'No audio generated.')}")
