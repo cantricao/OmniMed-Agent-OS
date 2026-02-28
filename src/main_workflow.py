@@ -101,9 +101,9 @@ if __name__ == "__main__":
     
     # Mock input for testing the pipeline
     test_state = {
-        "doctor_query": "Bệnh nhân có biểu hiện ho khan, hãy kiểm tra kết quả máu và tiền sử dị ứng để xem có nên dùng kháng sinh không.",
+        "doctor_query": "Đây là hóa đơn thanh toán của bệnh nhân. Hãy trích xuất danh sách các mặt hàng/dịch vụ, đơn giá tương ứng và tổng số tiền phải thanh toán từ hình ảnh này.",
         "patient_id": "BN_001",
-        "document_path": "data/images/sample_blood_test.pdf" # Make sure this file exists or it will skip gracefully
+        "document_path": "data/images/test_receipt.jpg" # Strictly points to the downloaded repo file
     }
     
     print(f"👨‍⚕️ DOCTOR's QUERY: {test_state['doctor_query']}")
