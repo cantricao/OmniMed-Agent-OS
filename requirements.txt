@@ -23,7 +23,7 @@ huggingface_hub
 # Quantization & Acceleration (Unsloth is installed separately via specific Colab wheel)
 unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git
 xformers 
-trl<0.9.0
+trl
 bitsandbytes
 accelerate
 peft
