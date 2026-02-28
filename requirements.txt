@@ -1,8 +1,27 @@
+# Orchestration & LLM
 langchain
 langgraph
-unsloth
-gradio_client
-docling
+langchain-community
+langchain-huggingface
+
+# RAG & Embeddings
 sentence-transformers
 chromadb
-whisper
+pysqlite3-binary # Fallback fix for ChromaDB SQLite issues on Linux
+
+# Vision & Document Parsing
+docling
+
+# Voice & API
+gradio-client
+torchaudio
+
+# Data Processing
+pandas
+datasets
+huggingface_hub
+
+# Quantization & Acceleration (Unsloth is installed separately via specific Colab wheel)
+bitsandbytes
+accelerate
+unsloth
