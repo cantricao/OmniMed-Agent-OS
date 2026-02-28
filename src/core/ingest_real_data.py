@@ -1,6 +1,7 @@
 import os
 import pandas as pd
-from langchain.schema import Document
+# [FIXED] Updated import path for Document in the latest LangChain versions
+from langchain_core.documents import Document 
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
@@ -20,7 +21,6 @@ def ingest_real_vietnamese_medical_data():
     )
     
     # 2. Verify and read the downloaded real dataset (ViHealthQA or equivalent)
-    # Note: Ensure this CSV file exists in the directory after the download step
     data_path = "data/vietnamese_med_corpus/vihealth_qa.csv"
     
     if not os.path.exists(data_path):
@@ -31,14 +31,12 @@ def ingest_real_vietnamese_medical_data():
     print(f"📖 [Data Ingestion] Reading real medical dataset from: {data_path}...")
     df = pd.read_csv(data_path)
     
-    # Take the first 500 records for testing (can be increased later, 
-    # but 500 is optimal to test RAG without extreme GPU wait times)
+    # Take the first 500 records for testing
     sample_df = df.head(500) 
     
     docs = []
     for index, row in sample_df.iterrows():
         # Handle column names based on dataset format 
-        # (usually 'question'/'answer' or 'instruction'/'output')
         question = row.get('question', row.get('instruction', ''))
         answer = row.get('answer', row.get('output', ''))
         
@@ -46,8 +44,6 @@ def ingest_real_vietnamese_medical_data():
             continue
             
         # Combine into a single comprehensive medical document
-        # The content remains in Vietnamese for the AI to read, 
-        # but the structure is strictly maintained
         content = f"Question/Symptom: {question}\nAnalysis/Answer: {answer}"
         
         # Add metadata for tracking the source
