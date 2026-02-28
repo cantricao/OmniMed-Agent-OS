@@ -67,7 +67,7 @@ def voice_node(state: MedicalState):
     text_to_speak = state.get("voice_summary", "Báo cáo đã sẵn sàng.")
     print(f"🔊 [Voice Node] Synthesizing audio for TTS: '{text_to_speak}'")
     
-    audio_path = generate_clinical_voice_alert.invoke({"text": text_to_speak})
+    audio_path = generate_clinical_voice_alert.invoke({"clinical_note": text_to_speak})
     return {"voice_alert_path": audio_path}
 
 # =====================================================================
