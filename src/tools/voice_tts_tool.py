@@ -1,18 +1,102 @@
-"""
-voice_tts_tool.py - Voice and text-to-speech tool using Whisper for transcription.
-"""
+import os
+import torch
+import torchaudio
+from langchain.tools import tool
 
+# =====================================================================
+# MODULE IMPORT
+# =====================================================================
+# Attempt to import the core Voice Cloning module from your local directory. 
+# Adjust 'VoxCPMModel' or 'VoxCPMDemo' based on the exact class name in your project.
+try:
+    from voxcpm import VoxCPMModel 
+except ImportError:
+    print("⚠️ WARNING: VoxCPM core libraries are not installed in this environment.")
 
-def transcribe_audio(audio_path: str) -> str:
-    """Transcribe an audio file to text using Whisper."""
-    pass
+# =====================================================================
+# DIRECT TTS TOOL (VoxCPM Local Inference with Dynamic VRAM Management)
+# =====================================================================
+# This setup strictly loads the model ONLY when triggered, generates the audio,
+# and forcefully purges the VRAM immediately after to prevent Out-of-Memory (OOM) 
+# crashes when running alongside the LLM and Vision models on a 16GB T4 GPU.
 
+@tool
+def generate_clinical_voice_alert(clinical_note: str) -> str:
+    """
+    Use this tool STRICTLY when you need to broadcast a clinical warning, 
+    drug interaction alert, or medical summary to the doctor via voice.
+    
+    Args:
+        clinical_note (str): The medical text (Vietnamese) to be synthesized into speech.
+        
+    Returns:
+        str: A confirmation message containing the absolute path to the generated audio file.
+    """
+    try:
+        print(f"🎙️ [Voice Node] Initiating local TTS synthesis...")
+        print("🧹 [Memory Manager] Clearing VRAM to prepare for VoxCPM...")
+        
+        # 1. Forcefully release unreferenced GPU memory from previous nodes (Vision/LLM)
+        torch.cuda.empty_cache() 
+        
+        # 2. Dynamically load the VoxCPM model into GPU ONLY when called
+        print("📥 [Voice Node] Loading VoxCPM model into GPU. This may take a moment...")
+        
+        # NOTE: Ensure the checkpoint path matches your local setup
+        checkpoint_path = "path/to/your/voxcpm/checkpoint" 
+        
+        # Instantiate the model. (Adjust class name if it differs in your local module)
+        current_model = VoxCPMModel.from_pretrained(checkpoint_path).to("cuda")
+        
+        # Ensure the output directory exists
+        output_dir = "data/voice_alerts"
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, "clinical_alert.wav")
+        
+        # 3. Execute the inference to generate speech
+        print(f"🔊 [Voice Node] Synthesizing audio for: '{clinical_note[:50]}...'")
+        
+        # Using the exact .generate() method structure discovered in the Colab notebook
+        wav_tensor = current_model.generate(
+            text=clinical_note,
+            cfg_value=2.0,                  # Control scale for generation quality
+            inference_timesteps=25,         # Number of steps for inference
+            normalize=False,                # External text normalization
+            denoise=False                   # Post-processing denoise filter
+        )
+        
+        # Retrieve the sample rate dynamically from the model's inner configuration
+        sample_rate = current_model.tts_model.sample_rate if hasattr(current_model, 'tts_model') else 16000
+        
+        # Ensure the tensor is 2D [channels, time] as required by torchaudio
+        if wav_tensor.dim() == 1:
+            wav_tensor = wav_tensor.unsqueeze(0)
+            
+        # Save the synthesized waveform to a physical audio file on the local disk
+        torchaudio.save(output_file, wav_tensor.cpu(), sample_rate=sample_rate)
+        
+        # ==========================================================
+        # 4. CRITICAL STEP: Purge the model from VRAM instantly
+        # ==========================================================
+        print("🧹 [Memory Manager] Unloading VoxCPM and freeing up VRAM...")
+        del current_model
+        del wav_tensor
+        torch.cuda.empty_cache()
+        
+        print(f"✅ [Voice Node] Alert successfully generated at {output_file}")
+        return f"SUCCESS: Voice alert generated. Audio file saved at: {output_file}"
+        
+    except Exception as e:
+        # Emergency VRAM cleanup in case of failure (e.g., OOM error during synthesis)
+        torch.cuda.empty_cache()
+        error_msg = f"LOCAL TTS ERROR: Failed to synthesize speech. Details: {str(e)}"
+        print(f"❌ {error_msg}")
+        return error_msg
 
-def synthesize_speech(text: str, output_path: str) -> str:
-    """Convert text to speech and save to output_path."""
-    pass
-
-
-def voice_tts_tool(audio_path: str) -> str:
-    """LangChain-compatible tool: transcribe audio input and return text."""
-    pass
+# =====================================================================
+# LOCAL TESTING BLOCK (Comment out in production)
+# =====================================================================
+# if __name__ == "__main__":
+#     test_note = "Cảnh báo y tế: Phát hiện rủi ro tương tác thuốc."
+#     res = generate_clinical_voice_alert.invoke(test_note)
+#     print(res)
