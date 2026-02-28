@@ -1,21 +1,19 @@
 import os
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+# [FIXED] Updated to use the dedicated langchain_huggingface package
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.tools import tool
 
 # =====================================================================
 # CONFIGURATION
 # =====================================================================
 # Using the Vietnamese BI-Encoder optimized for native language understanding.
-# Developed by Hanoi University of Science and Technology (BKAI).
 EMBEDDING_MODEL_NAME = "bkai-foundation-models/vietnamese-bi-encoder"
 CHROMA_DB_DIR = "./data/vietnamese_med_corpus/chroma_db"
 
 def get_vietnamese_vector_db() -> Chroma:
     """
     Initializes the embedding model and connects to the local Chroma database.
-    This function forces the embedding model to load onto the GPU (CUDA) 
-    if available, ensuring fast semantic search operations without crashing the RAM.
     """
     # 1. Initialize the HuggingFace Embedding model
     embeddings = HuggingFaceEmbeddings(
@@ -47,18 +45,12 @@ def search_patient_records(query: str) -> str:
     try:
         print(f"🔍 [RAG Node] Executing semantic search for query: '{query}'...")
         
-        # Instantiate the database connection
         db = get_vietnamese_vector_db()
-        
-        # Perform similarity search, fetching the top 3 most relevant context chunks
         docs = db.similarity_search(query, k=3)
         
-        # Handle cases where the database might be empty or no matches are found
         if not docs:
             return "WARNING: No relevant medical data found in the patient records database."
             
-        # Combine the retrieved contexts into a single, structured markdown block
-        # This formatting helps the downstream reasoning LLM digest the information easily
         context = "\n\n--- RETRIEVED MEDICAL CONTEXT ---\n\n".join(
             [doc.page_content for doc in docs]
         )
@@ -67,15 +59,6 @@ def search_patient_records(query: str) -> str:
         return f"Retrieved Context from Vietnamese EHR Database:\n\n{context}"
         
     except Exception as e:
-        # Fallback error handling to prevent the entire Agent graph from crashing
         error_msg = f"CRITICAL ERROR retrieving RAG data: {str(e)}"
         print(f"❌ {error_msg}")
         return error_msg
-
-# =====================================================================
-# LOCAL TESTING BLOCK (Comment out in production)
-# =====================================================================
-# if __name__ == "__main__":
-#     test_query = "Bệnh nhân Nguyễn Văn A có tiền sử dị ứng thuốc gì?"
-#     result = search_patient_records.invoke(test_query)
-#     print(result)

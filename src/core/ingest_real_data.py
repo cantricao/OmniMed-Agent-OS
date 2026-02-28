@@ -1,9 +1,9 @@
 import os
 import pandas as pd
-# [FIXED] Updated import path for Document in the latest LangChain versions
 from langchain_core.documents import Document 
 from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
+# [FIXED] Updated to use the dedicated langchain_huggingface package
+from langchain_huggingface import HuggingFaceEmbeddings
 
 # =====================================================================
 # REAL DATA INGESTION PIPELINE (Vietnamese Medical Corpus)
@@ -20,7 +20,7 @@ def ingest_real_vietnamese_medical_data():
         encode_kwargs={'normalize_embeddings': True}
     )
     
-    # 2. Verify and read the downloaded real dataset (ViHealthQA or equivalent)
+    # 2. Verify and read the downloaded real dataset
     data_path = "data/vietnamese_med_corpus/vihealth_qa.csv"
     
     if not os.path.exists(data_path):
@@ -36,17 +36,13 @@ def ingest_real_vietnamese_medical_data():
     
     docs = []
     for index, row in sample_df.iterrows():
-        # Handle column names based on dataset format 
         question = row.get('question', row.get('instruction', ''))
         answer = row.get('answer', row.get('output', ''))
         
         if pd.isna(question) or pd.isna(answer):
             continue
             
-        # Combine into a single comprehensive medical document
         content = f"Question/Symptom: {question}\nAnalysis/Answer: {answer}"
-        
-        # Add metadata for tracking the source
         docs.append(Document(page_content=content, metadata={"source": "ViHealthQA", "record_id": str(index)}))
         
     # 3. Inject the formatted documents into ChromaDB
