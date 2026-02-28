@@ -1,0 +1,8 @@
+langchain
+langgraph
+unsloth
+gradio_client
+docling
+sentence-transformers
+chromadb
+whisper
