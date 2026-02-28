@@ -10,7 +10,8 @@ from langchain.tools import tool
 # Attempt to import the core Voice Cloning module from your local directory. 
 # Adjust 'VoxCPMModel' based on the exact class name in your project.
 try:
-    from voxcpm import VoxCPMModel 
+    from voxcpm import VoxCPMModel
+    import soundfile as sf
 except ImportError:
     print("⚠️ WARNING: VoxCPM core libraries are not installed in this environment.")
 
@@ -59,7 +60,7 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
         print(f"🎙️ [Voice Node] Initiating local TTS synthesis...")
         
         # 0. Ensure the model is downloaded and get the correct path
-        checkpoint_path = ensure_model_downloaded()
+        # checkpoint_path = ensure_model_downloaded()
         
         print("🧹 [Memory Manager] Clearing VRAM to prepare for VoxCPM...")
         # 1. Forcefully release unreferenced GPU memory from previous nodes (Vision/LLM)
@@ -69,7 +70,7 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
         print("📥 [Voice Node] Loading VoxCPM model into GPU. This may take a moment...")
         
         # Instantiate the model from the local downloaded path
-        current_model = VoxCPMModel.from_pretrained(checkpoint_path).to("cuda")
+        current_model = VoxCPMModel.from_pretrained(HF_REPO_ID).to("cuda")
         
         # Ensure the output directory exists
         output_dir = "data/voice_alerts"
@@ -79,30 +80,27 @@ def generate_clinical_voice_alert(clinical_note: str) -> str:
         # 3. Execute the inference to generate speech
         print(f"🔊 [Voice Node] Synthesizing audio for: '{clinical_note[:50]}...'")
         
-        wav_tensor = current_model.generate(
-            text=clinical_note,
-            cfg_value=2.0,                  # Control scale for generation quality
-            inference_timesteps=25,         # Number of steps for inference
-            normalize=False,                # External text normalization
-            denoise=False                   # Post-processing denoise filter
+        wav = current_model.generate(
+            text= clinical_note,
+            prompt_wav_path="data/voice_alerts/sample.wav",      # optional: path to a prompt speech for voice cloning
+            prompt_text="Ai đây tức là một kẻ ăn mày vậy. Anh ta chưa kịp quay đi thì đã thấy mấy con chó vàng chạy xồng xộc ra cứ nhảy xổ vào chân anh.",          # optional: reference text
+            cfg_value=2.0,             # LM guidance on LocDiT, higher for better adherence to the prompt, but maybe worse
+            inference_timesteps=10,   # LocDiT inference timesteps, higher for better result, lower for fast speed
+            normalize=False,           # enable external TN tool, but will disable native raw text support
+            denoise=False,             # enable external Denoise tool, but it may cause some distortion and restrict the sampling rate to 16kHz
+            retry_badcase=True,        # enable retrying mode for some bad cases (unstoppable)
+            retry_badcase_max_times=3,  # maximum retrying times
+            retry_badcase_ratio_threshold=6.0, # maximum length restriction for bad case detection (simple but effective), it could be adjusted for slow pace speech
         )
-        
-        # Retrieve the sample rate dynamically from the model's inner configuration
-        sample_rate = current_model.tts_model.sample_rate if hasattr(current_model, 'tts_model') else 16000
-        
-        # Ensure the tensor is 2D [channels, time] as required by torchaudio
-        if wav_tensor.dim() == 1:
-            wav_tensor = wav_tensor.unsqueeze(0)
-            
-        # Save the synthesized waveform to a physical audio file on the local disk
-        torchaudio.save(output_file, wav_tensor.cpu(), sample_rate=sample_rate)
+
+        sf.write(output_file, wav, current_model.tts_model.sample_rate)
         
         # ==========================================================
         # 4. CRITICAL STEP: Purge the model from VRAM instantly
         # ==========================================================
         print("🧹 [Memory Manager] Unloading VoxCPM and freeing up VRAM...")
         del current_model
-        del wav_tensor
+        del wav
         torch.cuda.empty_cache()
         
         print(f"✅ [Voice Node] Alert successfully generated at {output_file}")
