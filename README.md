@@ -16,7 +16,7 @@
 Built with strict privacy constraints and biomedical data analytics principles, the system runs entirely on local hardware (optimized for constrained GPUs like the Tesla T4) without transmitting sensitive Protected Health Information (PHI) to external APIs.
 
 ## 🎯 Expected Output & Demo
-*(Insert a GIF or Screenshot of your Gradio Web UI here)*
+<video controls src="assets/OmniMed-Agent-OS - Ouput.mp4" title="OmniMed-Agent-OS - Ouput"></video>
 
 
 **Sample Clinical Reasoning Result:**
@@ -82,13 +82,18 @@ Fire up the full pipeline. The Gradio interface allows you to upload documents, 
 python app.py
 ```
 
+**5. Advanced Usage (CLI / Headless Mode)**
+For developers or deployment on GUI-less Linux servers, you can bypass the Gradio interface and execute the LangGraph workflow directly via the command line interface (CLI). This is ideal for CI/CD pipeline testing or batch processing.
+
+```bash
+python -m src.main_workflow
 ---
 
 ## 🔬 Technical Highlights for Data/ML Engineers
 * **Memory Management:** Implemented strict VRAM clearing (`torch.cuda.empty_cache()`) between pipeline steps, allowing heavy OCR, RAG, 8B LLMs, and TTS models to run sequentially on a single 16GB VRAM GPU.
 * **Anti-Hallucination Guardrails:** Strict prompt engineering ensures the AI only extracts explicitly stated medical pricing and quantities, translating all operational metadata strictly to the target language without arbitrary conversational filler.
 * **Scalable ETL:** RAG ingestion is decoupled from the main app, utilizing `tqdm` tracking and batch-chunking, preparing the system for enterprise-scale electronic health records (EHR) databases.
-
+* **A/B Testing Ready:** The UI architecture exposes model selection states natively, allowing developers to hot-swap reasoning models (e.g., Llama-3, Mistral, Gemma) instantly via the Gradio interface without altering core logic.
 ---
 
 ## 🗺️ Roadmap & Future Enhancements
