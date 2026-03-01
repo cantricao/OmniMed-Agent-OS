@@ -18,7 +18,7 @@ class MedicalState(TypedDict):
     doctor_query: str
     patient_id: Optional[str]
     document_path: Optional[str]
-    # [NEW] Voice Cloning parameters
+    llm_model_id: Optional[str]
     prompt_wav_path: Optional[str]
     prompt_text: Optional[str]
     
@@ -50,11 +50,15 @@ def rag_node(state: MedicalState):
 def reasoning_node(state: MedicalState):
     print("\n▶️ [STEP 3] EXECUTING CLINICAL REASONING NODE...")
     
+    selected_model = state.get("llm_model_id", "unsloth/llama-3-8b-Instruct-bnb-4bit")
+    print(f"🧠 [Reasoning Node] Using LLM Model: {selected_model}")
+    
     # Invoke the LLM to generate the Dual-Stream output
     llm_result = invoke_clinical_reasoning.invoke({
         "doctor_query": state.get("doctor_query"),
         "rag_context": state.get("rag_clinical_context"),
-        "ocr_text": state.get("ocr_extracted_text")
+        "ocr_text": state.get("ocr_extracted_text"),
+        "model_name": selected_model
     })
     
     # Safely extract both streams from the returned dictionary

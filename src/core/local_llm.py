@@ -6,13 +6,12 @@ from langchain.tools import tool
 # =====================================================================
 # CONFIGURATION
 # =====================================================================
-MODEL_NAME = "unsloth/llama-3-8b-Instruct-bnb-4bit"
 MAX_SEQ_LENGTH = 2048
 DTYPE = None # Auto-detect (bfloat16 for Ampere+, float16 for Tesla T4)
 LOAD_IN_4BIT = True
 
 @tool
-def invoke_clinical_reasoning(doctor_query: str, rag_context: str, ocr_text: str) -> dict:
+def invoke_clinical_reasoning(doctor_query: str, rag_context: str, ocr_text: str, model_name: str) -> dict:
     """
     Core reasoning engine using Llama-3 8B to analyze medical data.
     Returns a dictionary containing a detailed UI report and a short voice summary.
@@ -22,7 +21,7 @@ def invoke_clinical_reasoning(doctor_query: str, rag_context: str, ocr_text: str
         
         # 1. Load the optimized Unsloth model
         model, tokenizer = FastLanguageModel.from_pretrained(
-            model_name=MODEL_NAME,
+            model_name=model_name,
             max_seq_length=MAX_SEQ_LENGTH,
             dtype=DTYPE,
             load_in_4bit=LOAD_IN_4BIT,

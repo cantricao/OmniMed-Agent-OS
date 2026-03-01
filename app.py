@@ -5,7 +5,7 @@ from src.main_workflow import omnimed_app
 # =====================================================================
 # CORE WEB INTERFACE LOGIC
 # =====================================================================
-def process_medical_case(query, patient_id, document_file, ref_audio, ref_text):
+def process_medical_case(query, patient_id, document_file, ref_audio, ref_text, llm_model):
     if document_file is None:
         return "⚠️ Please upload a document (Image/PDF).", None
     
@@ -17,7 +17,8 @@ def process_medical_case(query, patient_id, document_file, ref_audio, ref_text):
         "patient_id": patient_id,
         "document_path": doc_path,
         "prompt_wav_path": ref_audio,
-        "prompt_text": ref_text
+        "prompt_text": ref_text,
+        "llm_model_id": llm_model
     }
     
     try:
@@ -45,6 +46,22 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
     )
     
     with gr.Row():
+        with gr.Column(scale=1):
+            gr.Markdown("### 📥 Input Information")
+            
+            llm_model_input = gr.Dropdown(
+                    choices=[
+                        "unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit", # Meta's upgraded Llama 3.1, highly capable default
+                        "unsloth/llama-3-8b-Instruct-bnb-4bit",        # Smooth and stable legacy baseline
+                        "unsloth/Qwen2.5-7B-Instruct-bnb-4bit",        # Alibaba's top-tier reasoning, excellent Vietnamese support
+                        "unsloth/gemma-2-9b-it-bnb-4bit",              # Google's powerhouse, often outperforms 8B-class models
+                        "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",   # Solid logic and instruction following (v0.3 update)
+                        "unsloth/Phi-3.5-mini-instruct-bnb-4bit"       # Microsoft's highly efficient and smart lightweight model
+                    ],
+                    value="unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit", # Set the newer 3.1 version as default
+                    label="🧠 Select Reasoning Model (LLM)",
+                    info="Choose the local AI model for clinical reasoning (Requires Unsloth support)."
+                )
         with gr.Column(scale=1):
             gr.Markdown("### 📥 Input Information")
             doc_input = gr.File(label="Upload Document (Receipt/Prescription/X-Ray Image)")
@@ -75,7 +92,7 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
     # [NEW] Add ref_audio and ref_text to the inputs list
     submit_btn.click(
         fn=process_medical_case,
-        inputs=[query_input, patient_id_input, doc_input, ref_audio_input, ref_text_input],
+        inputs=[query_input, patient_id_input, doc_input, ref_audio_input, ref_text_input, llm_model_input],
         outputs=[report_output, audio_output]
     )
 
