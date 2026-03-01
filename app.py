@@ -37,7 +37,7 @@ def process_medical_case(query, patient_id, document_file, ref_audio, ref_text, 
 # =====================================================================
 # UI/UX DESIGN (GRADIO)
 # =====================================================================
-with gr.Blocks(title="OmniMed-Agent-OS") as demo:
+with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
     gr.Markdown(
         """
         # 🏥 OmniMed-Agent-OS: Multimodal Medical Assistant
@@ -95,4 +95,4 @@ with gr.Blocks(title="OmniMed-Agent-OS") as demo:
 
 if __name__ == "__main__":
     print("🚀 Launching OmniMed Web Interface...")
-    demo.launch(theme=gr.themes.Soft(), share=True, debug=True)
+    demo.launch(share=True, debug=True)
