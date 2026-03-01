@@ -16,9 +16,8 @@
 Built with strict privacy constraints and biomedical data analytics principles, the system runs entirely on local hardware (optimized for constrained GPUs like the Tesla T4) without transmitting sensitive Protected Health Information (PHI) to external APIs.
 
 ## 🎯 Expected Output & Demo
-<video controls src="assets/OmniMed-Agent-OS - Ouput.mp4" title="OmniMed-Agent-OS - Ouput"></video>
 
-
+![Test recept](data/images/test_receipt.jpg)
 **Sample Clinical Reasoning Result:**
 ```text
 ---UI_REPORT---
@@ -87,6 +86,7 @@ For developers or deployment on GUI-less Linux servers, you can bypass the Gradi
 
 ```bash
 python -m src.main_workflow
+```
 ---
 
 ## 🔬 Technical Highlights for Data/ML Engineers
