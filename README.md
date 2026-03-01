@@ -1,52 +1,125 @@
 # 🏥 OmniMed-Agent-OS
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
-![LangGraph](https://img.shields.io/badge/LangGraph-Multi--Agent-orange)
-![Llama-3](https://img.shields.io/badge/Llama_3-8B_4--bit-green)
-![VRAM](https://img.shields.io/badge/Optimized_for-16GB_VRAM-red)
+<div align="center">
+  <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python Version">
+  <img src="https://img.shields.io/badge/PyTorch-2.10+-EE4C2C.svg" alt="PyTorch">
+  <img src="https://img.shields.io/badge/Framework-LangGraph-000000.svg" alt="LangGraph">
+  <img src="https://img.shields.io/badge/VectorDB-Chroma-4B0082.svg" alt="ChromaDB">
+  <img src="https://img.shields.io/badge/Optimization-Unsloth-FF9900.svg" alt="Unsloth">
+</div>
 
-**OmniMed-Agent-OS** is a robust, multimodal, and fully localized (Vietnamese) AI Medical Assistant designed to run entirely completely offline on highly constrained hardware (e.g., a single 16GB VRAM GPU like the Nvidia T4).
+*An Edge-Deployed, Privacy-First Multimodal Medical AI Assistant with RAG and Zero-Shot Voice Cloning.*
 
-## 🌟 Key Features & Engineering Highlights
+## 📌 Executive Summary
+**OmniMed-Agent-OS** is an advanced, fully localized AI agent designed to process unstandardized medical documents (receipts, prescriptions), reason over a custom medical corpus, and synthesize natural voice alerts. 
 
-- **🧠 Dynamic VRAM Management:** Implements strict dynamic model loading and purging. Loads Vision, RAG, Reasoning (Llama-3 8B Unsloth 4-bit), and Voice TTS (VoxCPM) models sequentially into the GPU, ensuring the system never exceeds 16GB VRAM.
-- **👁️ Medical Document OCR (Docling):** Accurately extracts complex layouts and medical tables (e.g., blood test results) into structured Markdown format, avoiding LLM hallucinations.
-- **📚 Localized Medical RAG:** Uses the `bkai-foundation-models/vietnamese-bi-encoder` to perform highly accurate semantic searches over Vietnamese Electronic Health Records (EHR) and clinical guidelines using ChromaDB.
-- **🗣️ On-Premise Voice Synthesis:** Synthesizes clinical alerts using a local VoxCPM instance without relying on external cloud APIs, ensuring HIPAA/GDPR compliance for patient data.
-- **⚙️ Deterministic State Machine:** Orchestrated using **LangGraph** to ensure a strict, predictable execution pipeline: `Vision -> Retrieval -> Reasoning -> Voice Alert`.
+Built with strict privacy constraints and biomedical data analytics principles, the system runs entirely on local hardware (optimized for constrained GPUs like the Tesla T4) without transmitting sensitive Protected Health Information (PHI) to external APIs.
 
-## 🏗️ System Architecture
+## 🎯 Expected Output & Demo
+*(Insert a GIF or Screenshot of your Gradio Web UI here)*
 
-1. **Vision Node:** Parses attached scanned PDFs/Images.
-2. **RAG Node:** Fetches relevant patient history based on the doctor's query.
-3. **Reasoning Node:** LLM synthesizes OCR + RAG data to provide clinical insights.
-4. **Voice Node:** Converts the critical parts of the diagnosis into an audio alert.
 
-## 🚀 Quick Start
+**Sample Clinical Reasoning Result:**
+```text
+---UI_REPORT---
+Danh sách các mặt hàng/dịch vụ và đơn giá tương ứng:
+1. Sultamicillin (375mg) - UNASYN - 08 viên - Không có thông tin
+2. Povidine (10% 90ML) - 01 chai - Không có thông tin
+Tổng số tiền phải thanh toán: Không có thông tin
 
-### 1. Clone & Install
-```bash
-git clone [https://github.com/cantricao/OmniMed-Agent-OS.git](https://github.com/cantricao/OmniMed-Agent-OS.git)
-cd OmniMed-Agent-OS
-pip install -r requirements.txt
+---VOICE_SUMMARY---
+Phân tích hoàn tất. Có năm loại thuốc. Bác sĩ vui lòng xem chi tiết trên màn hình.
 ```
 
-**2. Run the Workflow** Ensure your .env contains your GOOGLE\_API\_KEY or GEMINI\_API\_KEY.
+## 🌟 Core Architecture (Agentic Workflow)
+The system is orchestrated using **LangGraph**, smoothly transitioning a unified `MedicalState` through four specialized nodes:
 
+1. **👁️ Vision Node (RapidOCR):** Extracts structured text, tabular data, and complex layouts from noisy medical images.
+2. **🔍 RAG Node (ChromaDB + HF Bi-encoder):** Performs semantic search against a locally embedded vector database of comprehensive medical QA records (ViHealthQA). Built with robust batch-ingestion scripts to handle large-scale data pipelines without memory overflow.
+3. **🧠 Clinical Reasoning Node (Unsloth + Llama-3 8B):** Loads quantized models dynamically to analyze symptoms and OCR data. Advanced prompt engineering enforces strict anti-hallucination rules, prevents data fabrication, and automatically restores missing language diacritics.
+4. **🎙️ Voice Alert Node (VoxCPM):** Synthesizes a concise clinical summary for healthcare professionals. Features **Zero-Shot Voice Cloning** to mimic specific speaker profiles, utilizing dynamic hardware dispatch to maximize GPU efficiency.
+
+## 🛠️ Project Structure
+```text
+OmniMed-Agent-OS/
+├── app.py                      # Main Gradio Web UI with Model A/B Testing & Voice Cloning
+├── setup.sh                    # Automated bash script for System/OS dependency resolution
+├── requirements.txt            # Python dependencies
+├── src/
+│   ├── main_workflow.py        # LangGraph State & Node Orchestration
+│   ├── core/
+│   │   ├── ingest_real_data.py # Robust ETL pipeline for batch-vectorizing datasets
+│   │   └── local_llm.py        # Unsloth LLM initialization and inference logic
+│   └── tools/
+│       ├── ocr_vision_tool.py  # RapidOCR wrappers
+│       └── voice_tts_tool.py   # VoxCPM Audio backend and dynamic tensor dispatch
+└── tests/
+    └── test_rag_db.py          # Validation scripts for ChromaDB semantic search accuracy
+```
+## 🚀 Getting Started
+**1. Automated Environment Setup:**
+Say goodbye to dependency hell. The provided setup script automatically installs OS-level codecs (`ffmpeg`, `libsndfile1`) and perfectly aligns PyTorch versions with hardware-accelerated libraries.
 ```bash
-# Execute the LangGraph pipeline
-python src/main_workflow.py
+chmod +x setup.sh
+./setup.sh
 ```
 
-## 🛡️ Security & Privacy
-All models and vector databases are hosted locally. Zero patient data is transmitted to external endpoints like OpenAI or Google Cloud, maintaining strict medical data confidentiality.
+**2. Data Ingestion (Vector Database):**
+Build your local knowledge base. This script automatically downloads the `tarudesu/ViHealthQA` dataset from HuggingFace and safely ingests records into ChromaDB using memory-safe batching. (Note: The raw CSV is ignored in version control to maintain repository efficiency).
+```bash
+python src/core/ingest_real_data.py
+```
+
+**3. Quality Assurance / Unit Testing:**
+Verify that your semantic search engine is populated and functioning correctly before launching the main application.
+```bash
+python python tests/test_rag_db.py
+```
+
+**4. Launch the AI OS**
+Fire up the full pipeline. The Gradio interface allows you to upload documents, select different open-source reasoning models dynamically, and even test voice cloning with reference audio.
+```bash
+python app.py
+```
+
+---
+
+## 🔬 Technical Highlights for Data/ML Engineers
+* **Memory Management:** Implemented strict VRAM clearing (`torch.cuda.empty_cache()`) between pipeline steps, allowing heavy OCR, RAG, 8B LLMs, and TTS models to run sequentially on a single 16GB VRAM GPU.
+* **Anti-Hallucination Guardrails:** Strict prompt engineering ensures the AI only extracts explicitly stated medical pricing and quantities, translating all operational metadata strictly to the target language without arbitrary conversational filler.
+* **Scalable ETL:** RAG ingestion is decoupled from the main app, utilizing `tqdm` tracking and batch-chunking, preparing the system for enterprise-scale electronic health records (EHR) databases.
+
+---
+
+## 🗺️ Roadmap & Future Enhancements
+While the current OS operates efficiently on edge devices, the architecture is designed to scale:
+* **[] FHIR/HL7 Integration:** Standardize OCR and reasoning outputs to comply with international electronic health record interoperability standards.
+* **[] Real-time Streaming TTS:** Implement chunk-based audio streaming to reduce Time-To-First-Audio (TTFA) for voice alerts.
+* **[] DICOM Image Support:** Expand the Vision Node to support standard medical imaging formats natively alongside standard OCR.
+
+---
+
+## 🤝 Contributing
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page. If you are looking to run this in a production environment, please ensure you have at least a 16GB VRAM GPU (e.g., NVIDIA T4, RTX 4080, or A10G) to handle the sequential multimodal execution.
+
+---
+
+# 📜 License
+Distributed under the MIT License. See LICENSE for more information.
+
+---
+
 
 👨‍💻 About the Author
 ----------------------
 
 **Tri Cao Can** AI Engineer & Data Analyst | Biomedical Data Science Specialist
 
-With over 3 years of professional experience in developing machine learning models and automated data pipelines , I hold a Master of Data Analytics from QUT. My core focus lies at the intersection of computational biology, genomic data analysis, and scalable AI infrastructure. This repository reflects my passion for building secure, data-driven systems that solve complex translational challenges.
+With a Master of Data Analytics specializing in Biomedical Data Analytics from the Queensland University of Technology (QUT), I bridge the gap between complex machine learning architectures and practical, privacy-first healthcare solutions. Based in Australia, I specialize in building end-to-end data pipelines, optimizing local LLM deployments, and developing robust AI systems for real-world clinical and enterprise environments.
+
+* **Open to opportunities:** Actively seeking Data Scientist, ML Engineer, or Data Engineer roles in Australia, as well as high-impact freelance projects.
+
+* **Let's connect:** Feel free to reach out via GitHub or LinkedIn to discuss AI in healthcare, hardware optimization, or enterprise data pipelines.
 
 * **Email:** cantricao@gmail.com
 * **LinkedIn:** [linkedin.com/in/cao-tri-can](https://www.linkedin.com/in/cao-tri-can-08188b21b/)
