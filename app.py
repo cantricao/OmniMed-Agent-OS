@@ -59,7 +59,11 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
             with gr.Accordion("🎙️ Voice Cloning Configuration (Optional)", open=False):
                 gr.Markdown("*Upload or record a short audio clip (3-10s) and provide its exact transcript to clone the voice.*")
                 ref_audio_input = gr.Audio(label="Reference Audio", type="filepath", sources=["upload", "microphone"])
-                ref_text_input = gr.Textbox(label="Reference Text (Exact transcript of the audio above)", lines=2)
+                ref_text_input = gr.Textbox(
+                    label="Reference Text (Exact transcript of the audio above)", 
+                    lines=2,
+                    value="Ai đây tức là một kẻ ăn mày vậy. Anh ta chưa kịp quay đi thì đã thấy mấy con chó vàng chạy xồng xộc ra cứ nhảy xổ vào chân anh."
+                )
                 
             submit_btn = gr.Button("🚀 Start AI Analysis", variant="primary")
             

@@ -116,7 +116,9 @@ if __name__ == "__main__":
     test_state = {
         "doctor_query": "Đây là hóa đơn thanh toán của bệnh nhân. Hãy trích xuất danh sách các mặt hàng/dịch vụ, đơn giá tương ứng và tổng số tiền phải thanh toán từ hình ảnh này.",
         "patient_id": "BN_001",
-        "document_path": "data/images/test_receipt.jpg" 
+        "document_path": "data/images/test_receipt.jpg",
+        "prompt_wav_path": "data/voice_samples/doctor_sample.wav",  # Optional: Path to reference audio for voice cloning
+        "prompt_text": "Ai đây tức là một kẻ ăn mày vậy. Anh ta chưa kịp quay đi thì đã thấy mấy con chó vàng chạy xồng xộc ra cứ nhảy xổ vào chân anh."
     }
     
     print(f"👨‍⚕️ DOCTOR's QUERY: {test_state['doctor_query']}")
