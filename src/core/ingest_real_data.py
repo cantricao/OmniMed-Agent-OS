@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from tqdm import tqdm
-from datasets import load_dataset
+from datasets import load_dataset, concatenate_datasets
 from langchain_core.documents import Document 
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -21,8 +21,10 @@ def download_and_prepare_data(data_path: str):
     os.makedirs(os.path.dirname(data_path), exist_ok=True)
     
     # Download dataset and save as a CSV file (Bronze Layer)
-    ds_text = load_dataset("tarudesu/ViHealthQA")
-    ds_text.to_csv(data_path, index=False)
+    ds_dict = load_dataset("tarudesu/ViHealthQA")
+    all_splits = [ds_dict[split] for split in ds_dict.keys()]
+    ds_combined = concatenate_datasets(all_splits)
+    ds_combined.to_csv(data_path, index=False)
     
     print(f"✅ [Data Ingestion] Successfully downloaded and saved data to: {data_path}")
 
