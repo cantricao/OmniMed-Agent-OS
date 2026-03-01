@@ -17,16 +17,32 @@ Built with strict privacy constraints and biomedical data analytics principles, 
 
 ## 🎯 Expected Output & Demo
 
-![Test recept](data/images/test_receipt.jpg)
+<div align="center">
+  <h3>📝 Input: Sample Medical Receipt</h3>
+  <img src="data/images/test_receipt.jpg" alt="Test receipt" width="400">
+  
+  <br><br> <h3>▶️ Output: OmniMed-Agent-OS Execution & Voice Alert</h3>
+  <video src="https://github.com/user-attachments/assets/232bcfed-4209-462b-bb0c-5246221a543e" controls="controls" width="800"></video>
+</div>
+
 **Sample Clinical Reasoning Result:**
 ```text
----UI_REPORT---
+==================================================
+📋 OMNIMED FINAL CLINICAL REPORT (UI)
+==================================================
 Danh sách các mặt hàng/dịch vụ và đơn giá tương ứng:
-1. Sultamicillin (375mg) - UNASYN - 08 viên - Không có thông tin
-2. Povidine (10% 90ML) - 01 chai - Không có thông tin
+
+* Sultamicillin375mgUNASYN: 08 viên, giá không có thông tin
+* NEXTGCAL: 30 viên, giá không có thông tin
+* HEMOQMOM: 30 viên, giá không có thông tin
+* Povidine10%90ML: 01 chai, giá không có thông tin
+* Bocham soc ron: 01 bo, giá không có thông tin
+
 Tổng số tiền phải thanh toán: Không có thông tin
 
----VOICE_SUMMARY---
+==================================================
+🔊 OMNIMED VOICE SUMMARY (TTS)
+==================================================
 Phân tích hoàn tất. Có năm loại thuốc. Bác sĩ vui lòng xem chi tiết trên màn hình.
 ```
 
