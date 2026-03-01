@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/Framework-LangGraph-000000.svg" alt="LangGraph">
   <img src="https://img.shields.io/badge/VectorDB-Chroma-4B0082.svg" alt="ChromaDB">
   <img src="https://img.shields.io/badge/Optimization-Unsloth-FF9900.svg" alt="Unsloth">
+  <img src="https://img.shields.io/badge/Deployment-Docker-2496ED.svg?logo=docker&logoColor=white" alt="Docker">
 </div>
 
 *An Edge-Deployed, Privacy-First Multimodal Medical AI Assistant with RAG and Zero-Shot Voice Cloning.*
@@ -103,6 +104,16 @@ For developers or deployment on GUI-less Linux servers, you can bypass the Gradi
 ```bash
 python -m src.main_workflow
 ```
+
+**6. Enterprise Deployment (Docker with GPU Support)**
+For production environments, ensure you have the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on your host machine.
+
+```bash
+# 1. Copy environment variables
+cp .env.example .env
+
+# 2. Build and run the container with GPU passthrough
+docker-compose up --build
 ---
 
 ## 🔬 Technical Highlights for Data/ML Engineers
