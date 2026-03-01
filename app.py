@@ -58,7 +58,7 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
                         "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",   # Solid logic and instruction following (v0.3 update)
                         "unsloth/Phi-3.5-mini-instruct-bnb-4bit"       # Microsoft's highly efficient and smart lightweight model
                     ],
-                    value="unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit", # Set the newer 3.1 version as default
+                    value="unsloth/llama-3-8b-Instruct-bnb-4bit", # Set the newer 3.1 version as default
                     label="🧠 Select Reasoning Model (LLM)",
                     info="Choose the local AI model for clinical reasoning (Requires Unsloth support)."
                 )
