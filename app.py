@@ -37,7 +37,7 @@ def process_medical_case(query, patient_id, document_file, ref_audio, ref_text, 
 # =====================================================================
 # UI/UX DESIGN (GRADIO)
 # =====================================================================
-with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="OmniMed-Agent-OS") as demo:
     gr.Markdown(
         """
         # 🏥 OmniMed-Agent-OS: Multimodal Medical Assistant
@@ -48,7 +48,7 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
     with gr.Row():
         with gr.Column(scale=1):
             gr.Markdown("### 📥 Input Information")
-            
+            doc_input = gr.File(label="Upload Document (Receipt/Prescription/X-Ray Image)")
             llm_model_input = gr.Dropdown(
                     choices=[
                         "unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit", # Meta's upgraded Llama 3.1, highly capable default
@@ -62,9 +62,6 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
                     label="🧠 Select Reasoning Model (LLM)",
                     info="Choose the local AI model for clinical reasoning (Requires Unsloth support)."
                 )
-        with gr.Column(scale=1):
-            gr.Markdown("### 📥 Input Information")
-            doc_input = gr.File(label="Upload Document (Receipt/Prescription/X-Ray Image)")
             patient_id_input = gr.Textbox(label="Patient ID", value="BN_001")
             query_input = gr.Textbox(
                 label="Doctor's Query / Analysis Command", 
@@ -75,7 +72,7 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
             # [NEW] Voice Cloning Section
             with gr.Accordion("🎙️ Voice Cloning Configuration (Optional)", open=False):
                 gr.Markdown("*Upload or record a short audio clip (3-10s) and provide its exact transcript to clone the voice.*")
-                ref_audio_input = gr.Audio(label="Reference Audio", type="filepath", sources=["upload", "microphone"])
+                ref_audio_input = gr.Audio(label="Reference Audio", type="filepath", sources=["upload", "microphone"], value="data/voice_samples/sample.wav")
                 ref_text_input = gr.Textbox(
                     label="Reference Text (Exact transcript of the audio above)", 
                     lines=2,
@@ -98,4 +95,4 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
 
 if __name__ == "__main__":
     print("🚀 Launching OmniMed Web Interface...")
-    demo.launch(share=True, debug=True)
+    demo.launch(theme=gr.themes.Soft(), share=True, debug=True)
