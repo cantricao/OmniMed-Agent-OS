@@ -3,6 +3,7 @@ import torch
 from langchain.tools import tool
 import soundfile as sf
 from voxcpm import VoxCPM
+import torchaudio
 from typing import Optional
 
 # =====================================================================
@@ -38,6 +39,7 @@ def generate_clinical_voice_alert(clinical_note: str, prompt_wav_path: Optional[
         # 1. Forcefully release unreferenced GPU memory from previous nodes (Vision/LLM)
         torch.cuda.empty_cache() 
         
+        torchaudio.set_audio_backend("soundfile")
         # 2. Dynamically load the VoxCPM model into GPU ONLY when called
         print("📥 [Voice Node] Loading VoxCPM model into GPU. This may take a moment...")
         
