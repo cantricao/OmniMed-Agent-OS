@@ -5,9 +5,16 @@ from datasets import load_dataset, concatenate_datasets
 from langchain_core.documents import Document 
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
+from dotenv import load_dotenv
 
-# [BYPASS TRICK] Declare a fake API Key to suppress LangChain warnings since we run 100% Local AI
-os.environ['OPENAI_API_KEY'] = 'fake_key_to_bypass_langchain_warnings'
+# =====================================================================
+# ENVIRONMENT CONFIGURATION
+# =====================================================================
+load_dotenv()
+
+if not os.environ.get("OPENAI_API_KEY"):
+    os.environ["OPENAI_API_KEY"] = "fake_key_to_bypass_langchain_warnings"
+    print("⚠️ [Config] No OPENAI_API_KEY found in .env file. Using default local bypass key.")
 
 # =====================================================================
 # REAL DATA INGESTION PIPELINE (Vietnamese Medical Corpus)

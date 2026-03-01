@@ -23,3 +23,6 @@ huggingface_hub
 
 # Graphics
 gradio
+
+# Env
+python-dotenv
