@@ -14,11 +14,11 @@ docling
 
 # Voice & API
 voxcpm 
-torchcodec==0.9
+torchcodec
 
 # Data Processing
 pandas
-datasets
+datasets<4
 huggingface_hub
 
 # Graphics
