@@ -43,7 +43,7 @@ def install_unsloth():
         print(f"🧩 [Unsloth Setup] Selected {xformers_pkg} for Torch {v}")
         
         # Execute complex dependency installations
-        run_cmd('pip install sentencepiece protobuf "datasets==4.3.0" "huggingface_hub>=0.34.0" hf_transfer -q')
+        run_cmd('pip install sentencepiece protobuf "datasets<4" "huggingface_hub>=0.34.0" hf_transfer -q')
         run_cmd(f'pip install --no-deps unsloth_zoo bitsandbytes accelerate {xformers_pkg} peft trl triton unsloth -q')
     
     # Force specific versions of transformers and trl to ensure compatibility
