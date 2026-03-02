@@ -46,14 +46,14 @@ def sample_initial_state() -> MedicalState:
     }
 
 
-@patch("src.main_workflow.extract_medical_document_ocr.invoke")
-def test_vision_node_success(mock_ocr_invoke, sample_initial_state):
+@patch("src.main_workflow.extract_medical_document_ocr")
+def test_vision_node_success(mock_ocr_tool, sample_initial_state):
     """
     Tests the Vision node in isolation to ensure it correctly updates
     the state when OCR succeeds.
     """
     # 1. Arrange: Setup the mock to return a fake OCR dictionary
-    mock_ocr_invoke.return_value = {"output": "Mocked receipt text."}
+    mock_ocr_tool.invoke.return_value = {"output": "Mocked receipt text."}
 
     # 2. Act: Import the node function directly and run it
     from src.main_workflow import vision_node
@@ -63,13 +63,13 @@ def test_vision_node_success(mock_ocr_invoke, sample_initial_state):
     # 3. Assert: Verify the state was updated correctly
     assert "ocr_extracted_text" in result
     assert result["ocr_extracted_text"] == "Mocked receipt text."
-    mock_ocr_invoke.assert_called_once()
+    mock_ocr_tool.invoke.assert_called_once()
 
 
-@patch("src.main_workflow.generate_clinical_voice_alert.invoke")
-@patch("src.main_workflow.invoke_clinical_reasoning.invoke")
-@patch("src.main_workflow.search_patient_records.invoke")
-@patch("src.main_workflow.extract_medical_document_ocr.invoke")
+@patch("src.main_workflow.generate_clinical_voice_alert")
+@patch("src.main_workflow.invoke_clinical_reasoning")
+@patch("src.main_workflow.search_patient_records")
+@patch("src.main_workflow.extract_medical_document_ocr")
 @patch("os.path.exists")
 def test_full_langgraph_pipeline_execution(
     mock_exists, mock_ocr, mock_rag, mock_llm, mock_voice, sample_initial_state
@@ -79,10 +79,10 @@ def test_full_langgraph_pipeline_execution(
     All heavy ML components are mocked to ensure rapid, deterministic testing.
     """
     # 1. Arrange: Mock system checks and all tool responses
-    mock_exists.return_value = True
-    mock_ocr.return_value = {"output": "Extracted text"}
-    mock_rag.return_value = {"output": "Clinical context"}
-    mock_llm.return_value = {
+    mock_exists.invoke.return_value = True
+    mock_ocr.invoke.return_value = {"output": "Extracted text"}
+    mock_rag.invoke.return_value = {"output": "Clinical context"}
+    mock_llm.invoke.return_value = {
         "final_diagnosis": "Patient has a cold.",
         "voice_summary": "Bệnh nhân bị cảm.",
     }
