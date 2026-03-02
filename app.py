@@ -183,3 +183,6 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
 if __name__ == "__main__":
     logger.info("🚀 Launching OmniMed Web Interface on local server...")
     demo.launch(share=True, debug=True)
+
+
+# [CI/CD] Dummy trigger to sync Black formatting
