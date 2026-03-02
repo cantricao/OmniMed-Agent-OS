@@ -6,7 +6,17 @@ from unittest.mock import MagicMock
 # We mock 'unsloth' and 'torch' BEFORE importing our local modules
 # to prevent ModuleNotFoundError on CPU-only CI environments.
 # =====================================================================
-mock_modules = ["unsloth", "unsloth.models", "triton", "xformers", "bitsandbytes"]
+mock_modules = [
+    "unsloth",
+    "unsloth.models",
+    "triton",
+    "xformers",
+    "bitsandbytes",
+    "docling",
+    "docling.document_converter",
+    "transformers",
+    "torch",
+]
 for module in mock_modules:
     sys.modules[module] = MagicMock()
 
