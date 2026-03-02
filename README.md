@@ -1,5 +1,5 @@
 # 🏥 OmniMed-Agent-OS
-
+![CI/CD Pipeline](https://github.com/cantricao/OmniMed-Agent-OS/actions/workflows/ci.yml/badge.svg)
 <div align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python Version">
   <img src="https://img.shields.io/badge/PyTorch-2.10+-EE4C2C.svg" alt="PyTorch">
