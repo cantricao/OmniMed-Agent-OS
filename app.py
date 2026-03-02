@@ -4,7 +4,7 @@ import logging
 import uuid  # [NEW] Import uuid to generate unique session IDs
 from typing import Any, Tuple, Optional
 from src.core.main_workflow import omnimed_app
-
+from src.core.config_manager import config  
 # =====================================================================
 # ENTERPRISE LOGGING CONFIGURATION
 # =====================================================================
@@ -107,16 +107,11 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
             doc_input = gr.File(
                 label="Upload Document (Receipt/Prescription/X-Ray Image)"
             )
+            
+            models_config = config.get_models()
             llm_model_input = gr.Dropdown(
-                choices=[
-                    "unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit",  # Meta's upgraded Llama 3.1
-                    "unsloth/llama-3-8b-Instruct-bnb-4bit",  # Smooth legacy baseline
-                    "unsloth/Qwen2.5-7B-Instruct-bnb-4bit",  # Alibaba's top-tier reasoning
-                    "unsloth/gemma-2-9b-it-bnb-4bit",  # Google's powerhouse
-                    "unsloth/mistral-7b-instruct-v0.3-bnb-4bit",  # Solid logic
-                    "unsloth/Phi-3.5-mini-instruct-bnb-4bit",  # Microsoft's highly efficient model
-                ],
-                value="unsloth/llama-3-8b-Instruct-bnb-4bit",
+                choices=models_config.get("available_llms", []),
+                value=models_config.get("default_llm", "unsloth/llama-3-8b-Instruct-bnb-4bit"),
                 label="🧠 Select Reasoning Model (LLM)",
                 info="Choose the local AI model for clinical reasoning (Requires Unsloth support).",
             )

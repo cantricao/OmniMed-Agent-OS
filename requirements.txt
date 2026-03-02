@@ -27,3 +27,4 @@ gradio
 # Env and test
 python-dotenv
 pytest
+PyYAML

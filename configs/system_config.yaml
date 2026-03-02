@@ -1,0 +1,28 @@
+# =====================================================================
+# OMNIMED-AGENT-OS: MASTER CONFIGURATION FILE
+# =====================================================================
+
+models:
+  default_llm: "unsloth/llama-3-8b-Instruct-bnb-4bit"
+  available_llms:
+    - "unsloth/Meta-Llama-3.1-8B-Instruct-bnb-4bit"
+    - "unsloth/llama-3-8b-Instruct-bnb-4bit"
+    - "unsloth/Qwen2.5-7B-Instruct-bnb-4bit"
+    - "unsloth/gemma-2-9b-it-bnb-4bit"
+    - "unsloth/mistral-7b-instruct-v0.3-bnb-4bit"
+    - "unsloth/Phi-3.5-mini-instruct-bnb-4bit"
+
+prompts:
+  clinical_reasoning: |
+    You are an expert Medical AI Assistant operating in a high-security local environment.
+    Your task is to analyze the provided OCR text from a medical document and the retrieved 
+    EHR context, then output a structured clinical report. 
+    Maintain strict medical accuracy and do not hallucinate patient data.
+  
+  voice_summary: |
+    Based on the clinical report, generate a concise, easy-to-understand 1-2 sentence 
+    summary in Vietnamese, optimized for text-to-speech (TTS) audio playback.
+
+system:
+  max_retries: 3
+  timeout_seconds: 120
