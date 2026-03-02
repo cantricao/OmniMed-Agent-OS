@@ -2,6 +2,7 @@ import os
 import logging
 from typing import TypedDict, Optional, Dict, Any
 from langgraph.graph import StateGraph, END
+from langgraph.checkpoint.memory import MemorySaver
 import re
 
 # Import our custom multimodal tools and local reasoning engine
@@ -219,7 +220,16 @@ workflow.add_edge("EHR_RAG", "Clinical_Reasoning")
 workflow.add_edge("Clinical_Reasoning", "Voice_Alert")
 workflow.add_edge("Voice_Alert", END)
 
-omnimed_app = workflow.compile()
+
+# [ENTERPRISE HITL COMPLIANCE]
+# Initialize memory to save the graph state during pauses
+memory = MemorySaver()
+
+# Compile the graph with a strict interruption BEFORE synthesizing voice
+omnimed_app = workflow.compile(
+    checkpointer=memory,
+    interrupt_before=["Voice_Alert"]
+)
 
 # =====================================================================
 # 4. RUNNABLE DEMO / CLI INTERFACE
@@ -237,23 +247,36 @@ if __name__ == "__main__":
         "prompt_text": "Ai đây tức là một kẻ ăn mày vậy.",
     }
 
-    logger.info(f"👨‍⚕️ DOCTOR's QUERY: {test_state.get('doctor_query')}")
-    logger.info(f"📄 DOCUMENT ATTACHED: {test_state.get('document_path')}")
+    # Unique thread ID to track this specific patient's session
+    thread_config = {"configurable": {"thread_id": "session_BN_001"}}
 
     try:
-        final_state = omnimed_app.invoke(test_state)
-        logger.info("=" * 50)
-        logger.info("📋 OMNIMED FINAL CLINICAL REPORT (UI)")
-        logger.info("=" * 50)
+        logger.info("🚀 PHASE 1: Executing Automated Analysis (OCR -> RAG -> LLM)...")
+        # First invocation: It will run and PAUSE right before 'Voice_Alert'
+        initial_run_state = omnimed_app.invoke(test_state, config=thread_config)
         
-        # We use print here intentionally ONLY for the final CLI output display to the user, not for logging
-        print(final_state.get("final_diagnosis"))
+        # Display the AI's clinical reasoning for the Doctor to review
         print("\n" + "=" * 50)
-        print("🔊 OMNIMED VOICE SUMMARY (TTS)")
+        print("📋 [PENDING DOCTOR APPROVAL] CLINICAL REPORT:")
         print("=" * 50)
-        print(final_state.get("voice_summary"))
+        print(initial_run_state.get("final_diagnosis", "No diagnosis generated."))
         
-        logger.info(f"🎙️ AUDIO ALERT STATUS: {final_state.get('voice_alert_path', 'No audio generated.')}")
+        # Manually prompt the user (Doctor) in the CLI
+        print("\n" + "=" * 50)
+        user_input = input("👨‍⚕️ ACTION REQUIRED: Approve this report to generate Voice Alert? (y/n): ")
         
+        if user_input.lower().strip() == 'y':
+            logger.info("✅ Doctor Approved. Resuming workflow to generate Voice Alert...")
+            # Second invocation: Passing None with the same config resumes the paused graph
+            final_state = omnimed_app.invoke(None, config=thread_config)
+            
+            print("\n" + "=" * 50)
+            print("🔊 FINAL VOICE SUMMARY (TTS)")
+            print("=" * 50)
+            print(final_state.get("voice_summary"))
+            logger.info(f"🎙️ AUDIO ALERT PATH: {final_state.get('voice_alert_path')}")
+        else:
+            logger.warning("❌ Doctor Rejected the report. Voice synthesis cancelled.")
+            
     except Exception as e:
-        logger.critical(f"❌ [Critical Failure] Workflow crashed during execution: {str(e)}", exc_info=True)
+        logger.critical(f"❌ [Critical Failure] Workflow crashed: {str(e)}", exc_info=True)
