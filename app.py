@@ -1,8 +1,13 @@
 import gradio as gr
 import os
+import logging
 from typing import Any, Tuple, Optional
 from src.main_workflow import omnimed_app
 
+# =====================================================================
+# ENTERPRISE LOGGING CONFIGURATION
+# =====================================================================
+logger = logging.getLogger(__name__)
 
 # =====================================================================
 # CORE WEB INTERFACE LOGIC WITH STRICT TYPING & ERROR HANDLING
@@ -19,14 +24,13 @@ def process_medical_case(
     Main execution hook for the Gradio UI. Routes inputs to the LangGraph backend
     and handles state retrieval, type safety, and UI fallbacks.
     """
-    # 1. Input Validation
     if document_file is None:
+        logger.warning("User attempted to process without uploading a document.")
         gr.Warning("No document uploaded. Please attach a medical record.")
         return "⚠️ **Action Required:** Please upload a document (Image/PDF) to proceed.", None
 
     doc_path: str = document_file if isinstance(document_file, str) else document_file.name
 
-    # 2. Inject parameters into the LangGraph state
     state = {
         "doctor_query": query,
         "patient_id": patient_id,
@@ -37,23 +41,23 @@ def process_medical_case(
     }
 
     try:
-        # UX Improvement: Show a brief info toast while processing
+        logger.info(f"Initiating analysis for Patient ID: {patient_id} using model: {llm_model}")
         gr.Info("Analyzing medical context... This may take a moment depending on the LLM size.")
         
-        # 3. Execute Graph
         final_state = omnimed_app.invoke(state)
         
-        # [CRITICAL FIX]: Check for explicit errors from the LangGraph backend first!
         error_msg: Optional[str] = final_state.get("error_message")
         if error_msg:
+            logger.error(f"Workflow returned an error state: {error_msg}")
             gr.Warning("Workflow encountered an issue. Check the report panel for details.")
             return f"### 🚨 System Alert\n\n{error_msg}", None
         
-        # 4. Extract successful results
         report: str = final_state.get(
             "final_diagnosis", "Failed to generate clinical report."
         )
         audio_path: Optional[str] = final_state.get("voice_alert_path", None)
+
+        logger.info("Analysis completed successfully. Returning payload to frontend.")
 
         if audio_path and os.path.exists(audio_path):
             return report, audio_path
@@ -61,9 +65,8 @@ def process_medical_case(
             return report, None
 
     except Exception as e:
-        # 5. Catch catastrophic UI crashes and display a red error overlay
+        logger.critical(f"Catastrophic UI failure during execution: {str(e)}", exc_info=True)
         raise gr.Error(f"Catastrophic System Failure: {str(e)}")
-
 
 # =====================================================================
 # UI/UX DESIGN (GRADIO)
@@ -139,5 +142,5 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
     )
 
 if __name__ == "__main__":
-    print("🚀 Launching OmniMed Web Interface...")
+    logger.info("🚀 Launching OmniMed Web Interface on local server...")
     demo.launch(share=True, debug=True)
