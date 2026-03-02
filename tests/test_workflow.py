@@ -46,7 +46,7 @@ def sample_initial_state() -> MedicalState:
     }
 
 
-@patch("src.core.main_workflow.extract_medical_document_ocr.invoke")
+@patch("src.main_workflow.extract_medical_document_ocr.invoke")
 def test_vision_node_success(mock_ocr_invoke, sample_initial_state):
     """
     Tests the Vision node in isolation to ensure it correctly updates
@@ -56,7 +56,7 @@ def test_vision_node_success(mock_ocr_invoke, sample_initial_state):
     mock_ocr_invoke.return_value = {"output": "Mocked receipt text."}
 
     # 2. Act: Import the node function directly and run it
-    from src.core.main_workflow import vision_node
+    from src.main_workflow import vision_node
 
     result = vision_node(sample_initial_state)
 
@@ -66,10 +66,10 @@ def test_vision_node_success(mock_ocr_invoke, sample_initial_state):
     mock_ocr_invoke.assert_called_once()
 
 
-@patch("src.core.main_workflow.generate_clinical_voice_alert.invoke")
-@patch("src.core.main_workflow.invoke_clinical_reasoning.invoke")
-@patch("src.core.main_workflow.search_patient_records.invoke")
-@patch("src.core.main_workflow.extract_medical_document_ocr.invoke")
+@patch("src.main_workflow.generate_clinical_voice_alert.invoke")
+@patch("src.main_workflow.invoke_clinical_reasoning.invoke")
+@patch("src.main_workflow.search_patient_records.invoke")
+@patch("src.main_workflow.extract_medical_document_ocr.invoke")
 @patch("os.path.exists")
 def test_full_langgraph_pipeline_execution(
     mock_exists, mock_ocr, mock_rag, mock_llm, mock_voice, sample_initial_state
