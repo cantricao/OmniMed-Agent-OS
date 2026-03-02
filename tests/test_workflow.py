@@ -1,9 +1,26 @@
+import sys
+from unittest.mock import MagicMock
+
+# =====================================================================
+# ENTERPRISE MOCKING: FAKE HEAVY ML LIBRARIES FOR CI
+# We mock 'unsloth' and 'torch' BEFORE importing our local modules 
+# to prevent ModuleNotFoundError on CPU-only CI environments.
+# =====================================================================
+mock_modules = [
+    "unsloth", 
+    "unsloth.models", 
+    "triton", 
+    "xformers",
+    "bitsandbytes"
+]
+for module in mock_modules:
+    sys.modules[module] = MagicMock()
+
+# Now it's safe to import your actual code
+from src.main_workflow import omnimed_app, MedicalState
 import pytest
 from unittest.mock import patch, MagicMock
 from typing import Dict, Any
-
-# Import the workflow and state definition from our core module
-from src.main_workflow import omnimed_app, MedicalState
 
 # =====================================================================
 # UNIT TESTS FOR LANGGRAPH WORKFLOW (MOCKED AI COMPONENTS)
