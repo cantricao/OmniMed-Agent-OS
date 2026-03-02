@@ -46,12 +46,16 @@ def sample_initial_state() -> MedicalState:
     }
 
 
+@patch("os.path.exists")
 @patch("src.main_workflow.extract_medical_document_ocr")
-def test_vision_node_success(mock_ocr_tool, sample_initial_state):
+def test_vision_node_success(mock_ocr_tool, mock_exists, sample_initial_state):
     """
     Tests the Vision node in isolation to ensure it correctly updates
     the state when OCR succeeds.
     """
+
+    mock_exists.return_value = True
+
     # 1. Arrange: Setup the mock to return a fake OCR dictionary
     mock_ocr_tool.invoke.return_value = {"output": "Mocked receipt text."}
 
@@ -79,7 +83,7 @@ def test_full_langgraph_pipeline_execution(
     All heavy ML components are mocked to ensure rapid, deterministic testing.
     """
     # 1. Arrange: Mock system checks and all tool responses
-    mock_exists.invoke.return_value = True
+    mock_exists.return_value = True
     mock_ocr.invoke.return_value = {"output": "Extracted text"}
     mock_rag.invoke.return_value = {"output": "Clinical context"}
     mock_llm.invoke.return_value = {
@@ -87,9 +91,10 @@ def test_full_langgraph_pipeline_execution(
         "voice_summary": "Bệnh nhân bị cảm.",
     }
     mock_voice.return_value = {"output": "fake_audio.wav"}
+    thread_config = {"configurable": {"thread_id": "ci_test_thread"}}
 
     # 2. Act: Invoke the compiled LangGraph application
-    final_state = omnimed_app.invoke(sample_initial_state)
+    final_state = omnimed_app.invoke(sample_initial_state, config=thread_config)
 
     # 3. Assert: Verify the graph traversed all nodes and populated the final state
     assert final_state.get("ocr_extracted_text") == "Extracted text"
