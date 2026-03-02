@@ -1,8 +1,9 @@
 import gradio as gr
 import os
 import logging
+import uuid  # [NEW] Import uuid to generate unique session IDs
 from typing import Any, Tuple, Optional
-from src.main_workflow import omnimed_app
+from src.core.main_workflow import omnimed_app
 
 # =====================================================================
 # ENTERPRISE LOGGING CONFIGURATION
@@ -21,8 +22,8 @@ def process_medical_case(
     llm_model: str
 ) -> Tuple[str, Optional[str]]:
     """
-    Main execution hook for the Gradio UI. Routes inputs to the LangGraph backend
-    and handles state retrieval, type safety, and UI fallbacks.
+    Main execution hook for the Gradio UI. 
+    Implements programmatic auto-resume for the LangGraph HITL pause to keep UI fluid.
     """
     if document_file is None:
         logger.warning("User attempted to process without uploading a document.")
@@ -40,24 +41,45 @@ def process_medical_case(
         "llm_model_id": llm_model,
     }
 
+    # [NEW] Generate a unique Thread ID for this specific Gradio interaction
+    # This ensures that multiple doctors using the app concurrently won't clash memories
+    session_id = str(uuid.uuid4())
+    thread_config = {"configurable": {"thread_id": session_id}}
+
     try:
-        logger.info(f"Initiating analysis for Patient ID: {patient_id} using model: {llm_model}")
-        gr.Info("Analyzing medical context... This may take a moment depending on the LLM size.")
+        logger.info(f"[Session {session_id}] Initiating analysis for Patient ID: {patient_id}")
+        gr.Info("Analyzing medical context... This may take a moment.")
         
-        final_state = omnimed_app.invoke(state)
+        # ---------------------------------------------------------
+        # PHASE 1: Run graph until the Human-in-the-Loop Interrupt
+        # ---------------------------------------------------------
+        logger.info(f"[Session {session_id}] Executing Phase 1 (OCR -> Sanitization -> RAG -> LLM)...")
+        # The graph will run and PAUSE exactly before the 'Voice_Alert' node
+        paused_state = omnimed_app.invoke(state, config=thread_config)
         
-        error_msg: Optional[str] = final_state.get("error_message")
+        # Check for explicitly caught errors during Phase 1
+        error_msg: Optional[str] = paused_state.get("error_message")
         if error_msg:
-            logger.error(f"Workflow returned an error state: {error_msg}")
-            gr.Warning("Workflow encountered an issue. Check the report panel for details.")
+            logger.error(f"[Session {session_id}] Workflow error: {error_msg}")
+            gr.Warning("Workflow encountered an issue. Check the report panel.")
             return f"### 🚨 System Alert\n\n{error_msg}", None
         
-        report: str = final_state.get(
-            "final_diagnosis", "Failed to generate clinical report."
-        )
+        # Extract the clinical report from the paused state
+        report: str = paused_state.get("final_diagnosis", "Failed to generate clinical report.")
+        
+        # ---------------------------------------------------------
+        # PHASE 2: Programmatic Auto-Approve (Resume Graph for Audio)
+        # ---------------------------------------------------------
+        logger.info(f"[Session {session_id}] Auto-approving HITL pause for UI Demo. Resuming Voice Alert...")
+        gr.Info("Clinical reasoning completed. Synthesizing voice alert...")
+        
+        # Passing 'None' as the state with the same thread_config tells LangGraph to RESUME
+        final_state = omnimed_app.invoke(None, config=thread_config)
+        
+        # Extract the final audio path
         audio_path: Optional[str] = final_state.get("voice_alert_path", None)
 
-        logger.info("Analysis completed successfully. Returning payload to frontend.")
+        logger.info(f"[Session {session_id}] Analysis and Voice Synthesis completed successfully.")
 
         if audio_path and os.path.exists(audio_path):
             return report, audio_path
