@@ -2,20 +2,23 @@ version: '3.8'
 
 services:
   omnimed-agent:
-    build: .
-    container_name: omnimed-os-container
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: omnimed-agent-os
     ports:
-      - "7860:7860"
-    env_file:
-      - .env
-    # THE MAGIC: This block passes your host machine's Nvidia GPU inside the container
+      - "7860:7860" # Gradio Web UI Port
+    volumes:
+      - ./data:/app/data       # Mount data folder to persist inputs/outputs
+      - ./configs:/app/configs # Mount configs for easy prompt editing without rebuild
+    environment:
+      - PYTHONUNBUFFERED=1
+      - GRADIO_SERVER_NAME=0.0.0.0
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1
+              count: all
               capabilities: [gpu]
-    volumes:
-      # Mount ChromaDB directory so vector data isn't lost when container restarts
-      - ./data/vietnamese_med_corpus/chroma_db:/app/data/vietnamese_med_corpus/chroma_db
+    restart: unless-stopped

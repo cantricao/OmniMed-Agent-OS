@@ -141,17 +141,38 @@ For developers or deployment on GUI-less Linux servers, you can bypass the Gradi
 ```bash
 python -m src.main_workflow
 ```
+---
 
-**6. Enterprise Deployment (Docker with GPU Support)**
-For production environments, ensure you have the [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) installed on your host machine.
+## 🐳 One-Click Local Deployment (Docker)
 
+To provide a seamless, environment-agnostic experience, OmniMed-Agent-OS is fully containerized. You do not need to deal with Python environments or dependency conflicts.
+
+### Prerequisites
+* [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
+* [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) (strictly required for GPU acceleration)
+
+### Quick Start Guide
+
+**1. Clone the repository:**
 ```bash
-# 1. Copy environment variables
-cp .env.example .env
-
-# 2. Build and run the container with GPU passthrough
-docker-compose up --build
+git clone [https://github.com/cantricao/OmniMed-Agent-OS.git](https://github.com/cantricao/OmniMed-Agent-OS.git)
+cd OmniMed-Agent-OS
 ```
+
+**2. Launch the AI Engine:**
+Deploy the entire application (OCR, LangGraph, LLM, TTS) with a single command:
+```bash
+docker-compose up -d --build
+```
+
+**3. Access the Interface:**
+Verify that your semantic search engine is populated and functioning correctly before launching the main application.
+👉 **http://localhost:7860**
+*Note: The first run may take a few minutes to download the base image and AI model weights. Subsequent runs will be instantaneous.*
+
+### 🔧 Configuration Editing
+Need to change the AI's behavior or language? You don't need to rebuild the Docker image! Simply edit the configs/system_config.yaml file on your host machine, and the changes will reflect inside the container automatically.
+
 ---
 
 ## 🔬 Technical Highlights for Data/ML Engineers
