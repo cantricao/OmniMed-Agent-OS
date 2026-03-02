@@ -114,12 +114,13 @@ def process_medical_case(
 # UI/UX DESIGN (GRADIO)
 # =====================================================================
 with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
-    gr.Markdown(
-        """
+
+# fmt: off
+    gr.Markdown("""
         # 🏥 OmniMed-Agent-OS: Multimodal Medical Assistant
         *A fully localized, privacy-first AI system for analyzing medical records locally on constrained hardware.*
-        """
-    )
+        """)
+# fmt: on
 
     with gr.Row():
         with gr.Column(scale=1):
