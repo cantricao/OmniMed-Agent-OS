@@ -22,6 +22,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
 # =====================================================================
 # 1. DEFINE THE GRAPH STATE
 # =====================================================================
@@ -36,10 +37,11 @@ class MedicalState(TypedDict, total=False):
     ocr_extracted_text: Optional[str]
     sanitized_text: Optional[str]
     rag_clinical_context: Optional[str]
-    final_diagnosis: Optional[str]  
-    voice_summary: Optional[str]    
+    final_diagnosis: Optional[str]
+    voice_summary: Optional[str]
     voice_alert_path: Optional[str]
-    error_message: Optional[str]    
+    error_message: Optional[str]
+
 
 # =====================================================================
 # 2. DEFINE THE GRAPH NODES WITH ROBUST LOGGING
@@ -53,21 +55,21 @@ def vision_node(state: MedicalState) -> Dict[str, Any]:
             return {"ocr_extracted_text": "No document attached."}
 
         ocr_result = extract_medical_document_ocr.invoke({"file_path": doc_path})
-        
+
         if isinstance(ocr_result, dict):
             ocr_text = ocr_result.get("output", ocr_result.get("text", str(ocr_result)))
         else:
             ocr_text = str(ocr_result)
-            
+
         logger.info("[Vision Node] OCR extraction completed successfully.")
         return {"ocr_extracted_text": ocr_text}
-        
+
     except Exception as e:
         # exc_info=True automatically attaches the stack trace to the log for easy debugging
         logger.error(f"[Vision Node Error]: {str(e)}", exc_info=True)
         return {"ocr_extracted_text": f"OCR Processing Failed: {str(e)}"}
-    
-    
+
+
 # =====================================================================
 # SECURITY COMPLIANCE: PHI/PII REDACTION ENGINE
 # =====================================================================
@@ -78,34 +80,37 @@ def redact_sensitive_info(text: str) -> str:
     """
     if not text:
         return ""
-        
+
     # 1. Mask Vietnamese & Universal Phone Numbers (e.g., 09xxxx, +84...)
-    text = re.sub(r'(\+84|0[3|5|7|8|9])+([0-9]{8})\b', '[REDACTED_PHONE]', text)
-    
+    text = re.sub(r"(\+84|0[3|5|7|8|9])+([0-9]{8})\b", "[REDACTED_PHONE]", text)
+
     # 2. Mask Email Addresses
-    text = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '[REDACTED_EMAIL]', text)
-    
+    text = re.sub(
+        r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", "[REDACTED_EMAIL]", text
+    )
+
     # 3. Mask Citizen ID Cards (CCCD - 12 digits) or standard 9-digit IDs
-    text = re.sub(r'\b\d{9,12}\b', '[REDACTED_ID]', text)
-    
+    text = re.sub(r"\b\d{9,12}\b", "[REDACTED_ID]", text)
+
     # 4. Mask Dates (DOB, Examination Dates) - formats: dd/mm/yyyy or dd-mm-yyyy
-    text = re.sub(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b', '[REDACTED_DATE]', text)
-    
+    text = re.sub(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", "[REDACTED_DATE]", text)
+
     return text
+
 
 def sanitization_node(state: MedicalState) -> Dict[str, Any]:
     """
-    Intercepts the OCR text and removes sensitive personal data 
+    Intercepts the OCR text and removes sensitive personal data
     before it reaches the RAG or LLM reasoning modules.
     """
     logger.info("▶️ [STEP 1.5] EXECUTING DATA SANITIZATION NODE (HIPAA/GDPR Check)...")
-    
+
     if state.get("error_message"):
         return state
-        
+
     try:
         raw_text = state.get("ocr_extracted_text", "")
-        
+
         # Skip masking if OCR failed or returned empty
         if not raw_text or "Failed" in raw_text or "No document" in raw_text:
             logger.warning("[Sanitization Node] No valid text to sanitize. Bypassing.")
@@ -113,24 +118,29 @@ def sanitization_node(state: MedicalState) -> Dict[str, Any]:
 
         # Apply redaction heuristics
         safe_text = redact_sensitive_info(raw_text)
-        
+
         logger.info("[Sanitization Node] PII/PHI successfully redacted.")
         return {"sanitized_text": safe_text}
-        
+
     except Exception as e:
         logger.error(f"[Sanitization Node Error]: {str(e)}", exc_info=True)
         return {"error_message": f"Security Module Failed: {str(e)}"}
+
 
 def rag_node(state: MedicalState) -> Dict[str, Any]:
     logger.info("▶️ [STEP 2] EXECUTING RAG NODE...")
     try:
         query = state.get("doctor_query", "")
         rag_result = search_patient_records.invoke({"query": query})
-        
-        context_str = str(rag_result) if not isinstance(rag_result, dict) else str(rag_result.get("output", rag_result))
+
+        context_str = (
+            str(rag_result)
+            if not isinstance(rag_result, dict)
+            else str(rag_result.get("output", rag_result))
+        )
         logger.info("[RAG Node] Clinical context retrieved successfully.")
         return {"rag_clinical_context": context_str}
-        
+
     except Exception as e:
         logger.error(f"[RAG Node Error]: {str(e)}", exc_info=True)
         return {"rag_clinical_context": "Failed to retrieve medical context."}
@@ -139,8 +149,12 @@ def rag_node(state: MedicalState) -> Dict[str, Any]:
 def reasoning_node(state: MedicalState) -> Dict[str, Any]:
     logger.info("▶️ [STEP 3] EXECUTING CLINICAL REASONING NODE...")
     try:
-        selected_model = state.get("llm_model_id", "unsloth/llama-3-8b-Instruct-bnb-4bit")
-        logger.info(f"[Reasoning Node] Initializing LLM Engine with model: {selected_model}")
+        selected_model = state.get(
+            "llm_model_id", "unsloth/llama-3-8b-Instruct-bnb-4bit"
+        )
+        logger.info(
+            f"[Reasoning Node] Initializing LLM Engine with model: {selected_model}"
+        )
 
         llm_result = invoke_clinical_reasoning.invoke(
             {
@@ -152,11 +166,15 @@ def reasoning_node(state: MedicalState) -> Dict[str, Any]:
         )
 
         if isinstance(llm_result, dict):
-            final_diag = llm_result.get("final_diagnosis", "Failed to generate UI report.")
+            final_diag = llm_result.get(
+                "final_diagnosis", "Failed to generate UI report."
+            )
             voice_sum = llm_result.get("voice_summary", "Báo cáo đã sẵn sàng.")
             logger.info("[Reasoning Node] Clinical diagnosis generated successfully.")
         else:
-            logger.warning("[Reasoning Node] LLM returned a raw string instead of a structured dictionary. Fallback applied.")
+            logger.warning(
+                "[Reasoning Node] LLM returned a raw string instead of a structured dictionary. Fallback applied."
+            )
             final_diag = str(llm_result)
             voice_sum = "Hệ thống đã phân tích xong nhưng không thể trích xuất kịch bản giọng nói."
 
@@ -164,7 +182,7 @@ def reasoning_node(state: MedicalState) -> Dict[str, Any]:
             "final_diagnosis": final_diag,
             "voice_summary": voice_sum,
         }
-        
+
     except Exception as e:
         logger.error(f"[Reasoning Node Error]: {str(e)}", exc_info=True)
         return {
@@ -192,11 +210,15 @@ def voice_node(state: MedicalState) -> Dict[str, Any]:
                 "prompt_text": ref_text,
             }
         )
-        
-        final_audio_path = audio_path.get("output", str(audio_path)) if isinstance(audio_path, dict) else str(audio_path)
+
+        final_audio_path = (
+            audio_path.get("output", str(audio_path))
+            if isinstance(audio_path, dict)
+            else str(audio_path)
+        )
         logger.info("[Voice Node] Audio alert synthesized successfully.")
         return {"voice_alert_path": final_audio_path}
-        
+
     except Exception as e:
         logger.error(f"[Voice Node Error]: {str(e)}", exc_info=True)
         return {"voice_alert_path": None}
@@ -226,10 +248,7 @@ workflow.add_edge("Voice_Alert", END)
 memory = MemorySaver()
 
 # Compile the graph with a strict interruption BEFORE synthesizing voice
-omnimed_app = workflow.compile(
-    checkpointer=memory,
-    interrupt_before=["Voice_Alert"]
-)
+omnimed_app = workflow.compile(checkpointer=memory, interrupt_before=["Voice_Alert"])
 
 # =====================================================================
 # 4. RUNNABLE DEMO / CLI INTERFACE
@@ -254,22 +273,26 @@ if __name__ == "__main__":
         logger.info("🚀 PHASE 1: Executing Automated Analysis (OCR -> RAG -> LLM)...")
         # First invocation: It will run and PAUSE right before 'Voice_Alert'
         initial_run_state = omnimed_app.invoke(test_state, config=thread_config)
-        
+
         # Display the AI's clinical reasoning for the Doctor to review
         print("\n" + "=" * 50)
         print("📋 [PENDING DOCTOR APPROVAL] CLINICAL REPORT:")
         print("=" * 50)
         print(initial_run_state.get("final_diagnosis", "No diagnosis generated."))
-        
+
         # Manually prompt the user (Doctor) in the CLI
         print("\n" + "=" * 50)
-        user_input = input("👨‍⚕️ ACTION REQUIRED: Approve this report to generate Voice Alert? (y/n): ")
-        
-        if user_input.lower().strip() == 'y':
-            logger.info("✅ Doctor Approved. Resuming workflow to generate Voice Alert...")
+        user_input = input(
+            "👨‍⚕️ ACTION REQUIRED: Approve this report to generate Voice Alert? (y/n): "
+        )
+
+        if user_input.lower().strip() == "y":
+            logger.info(
+                "✅ Doctor Approved. Resuming workflow to generate Voice Alert..."
+            )
             # Second invocation: Passing None with the same config resumes the paused graph
             final_state = omnimed_app.invoke(None, config=thread_config)
-            
+
             print("\n" + "=" * 50)
             print("🔊 FINAL VOICE SUMMARY (TTS)")
             print("=" * 50)
@@ -277,6 +300,8 @@ if __name__ == "__main__":
             logger.info(f"🎙️ AUDIO ALERT PATH: {final_state.get('voice_alert_path')}")
         else:
             logger.warning("❌ Doctor Rejected the report. Voice synthesis cancelled.")
-            
+
     except Exception as e:
-        logger.critical(f"❌ [Critical Failure] Workflow crashed: {str(e)}", exc_info=True)
+        logger.critical(
+            f"❌ [Critical Failure] Workflow crashed: {str(e)}", exc_info=True
+        )

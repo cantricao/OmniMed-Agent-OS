@@ -2,6 +2,7 @@ import os
 import torch
 from unsloth import FastLanguageModel
 from langchain.tools import tool
+from src.core.config_manager import config
 
 # =====================================================================
 # CONFIGURATION
@@ -32,20 +33,7 @@ def invoke_clinical_reasoning(
         FastLanguageModel.for_inference(model)  # Enable native 2x faster inference
 
         # 2. Construct the Medical Prompt enforcing Anti-Hallucination, Diacritic Restoration, and Dual-Stream output
-        system_prompt = (
-            "You are OmniMed, an elite AI medical assistant. "
-            "You will be provided with Context and an Attached Document (OCR text which may lack Vietnamese accents). "
-            "CRITICAL RULES: "
-            "1. If it is a receipt, ONLY extract items, quantities, and prices that are EXPLICITLY WRITTEN in the text. DO NOT invent, guess, or calculate any prices, totals, or missing data. If a price or total is not in the text, you MUST write 'Không có thông tin'. NO clinical diagnoses. "
-            "2. You MUST automatically restore the correct Vietnamese diacritics (khôi phục dấu) for unaccented OCR text. "
-            "3. ABSOLUTELY NO ENGLISH WORDS in your output, EXCEPT for standard medical names. "
-            "4. DO NOT print my instructions or brackets. "
-            "5. YOU MUST OUTPUT EXACTLY TWO SECTIONS using these exact markers:\n"
-            "---UI_REPORT---\n"
-            "[Your detailed Vietnamese report here]\n"
-            "---VOICE_SUMMARY---\n"
-            "[A short, 1-2 sentence summary in pure Vietnamese with NO English words or numbers, for the voice assistant to read aloud. Example: 'Phân tích hoàn tất. Có năm loại thuốc. Bác sĩ vui lòng xem chi tiết trên màn hình.']"
-        )
+        system_prompt = config.get_prompt("clinical_reasoning")
 
         user_message = (
             f"DOCTOR'S QUERY:\n{doctor_query}\n\n"
@@ -82,7 +70,7 @@ def invoke_clinical_reasoning(
 
         # 5. Parse the output to separate the UI text and Voice text
         ui_report = response_text
-        voice_summary = "Báo cáo đã phân tích xong. Bác sĩ vui lòng xem chi tiết trên màn hình."  # Fallback safety
+        voice_summary = config.get_prompt("voice_summary")  # Fallback safety
 
         if "---VOICE_SUMMARY---" in response_text:
             parts = response_text.split("---VOICE_SUMMARY---")

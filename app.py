@@ -4,33 +4,40 @@ import logging
 import uuid  # [NEW] Import uuid to generate unique session IDs
 from typing import Any, Tuple, Optional
 from src.core.main_workflow import omnimed_app
-from src.core.config_manager import config  
+from src.core.config_manager import config
+
 # =====================================================================
 # ENTERPRISE LOGGING CONFIGURATION
 # =====================================================================
 logger = logging.getLogger(__name__)
 
+
 # =====================================================================
 # CORE WEB INTERFACE LOGIC WITH STRICT TYPING & ERROR HANDLING
 # =====================================================================
 def process_medical_case(
-    query: str, 
-    patient_id: str, 
-    document_file: Any, 
-    ref_audio: Optional[str], 
-    ref_text: str, 
-    llm_model: str
+    query: str,
+    patient_id: str,
+    document_file: Any,
+    ref_audio: Optional[str],
+    ref_text: str,
+    llm_model: str,
 ) -> Tuple[str, Optional[str]]:
     """
-    Main execution hook for the Gradio UI. 
+    Main execution hook for the Gradio UI.
     Implements programmatic auto-resume for the LangGraph HITL pause to keep UI fluid.
     """
     if document_file is None:
         logger.warning("User attempted to process without uploading a document.")
         gr.Warning("No document uploaded. Please attach a medical record.")
-        return "⚠️ **Action Required:** Please upload a document (Image/PDF) to proceed.", None
+        return (
+            "⚠️ **Action Required:** Please upload a document (Image/PDF) to proceed.",
+            None,
+        )
 
-    doc_path: str = document_file if isinstance(document_file, str) else document_file.name
+    doc_path: str = (
+        document_file if isinstance(document_file, str) else document_file.name
+    )
 
     state = {
         "doctor_query": query,
@@ -47,39 +54,49 @@ def process_medical_case(
     thread_config = {"configurable": {"thread_id": session_id}}
 
     try:
-        logger.info(f"[Session {session_id}] Initiating analysis for Patient ID: {patient_id}")
+        logger.info(
+            f"[Session {session_id}] Initiating analysis for Patient ID: {patient_id}"
+        )
         gr.Info("Analyzing medical context... This may take a moment.")
-        
+
         # ---------------------------------------------------------
         # PHASE 1: Run graph until the Human-in-the-Loop Interrupt
         # ---------------------------------------------------------
-        logger.info(f"[Session {session_id}] Executing Phase 1 (OCR -> Sanitization -> RAG -> LLM)...")
+        logger.info(
+            f"[Session {session_id}] Executing Phase 1 (OCR -> Sanitization -> RAG -> LLM)..."
+        )
         # The graph will run and PAUSE exactly before the 'Voice_Alert' node
         paused_state = omnimed_app.invoke(state, config=thread_config)
-        
+
         # Check for explicitly caught errors during Phase 1
         error_msg: Optional[str] = paused_state.get("error_message")
         if error_msg:
             logger.error(f"[Session {session_id}] Workflow error: {error_msg}")
             gr.Warning("Workflow encountered an issue. Check the report panel.")
             return f"### 🚨 System Alert\n\n{error_msg}", None
-        
+
         # Extract the clinical report from the paused state
-        report: str = paused_state.get("final_diagnosis", "Failed to generate clinical report.")
-        
+        report: str = paused_state.get(
+            "final_diagnosis", "Failed to generate clinical report."
+        )
+
         # ---------------------------------------------------------
         # PHASE 2: Programmatic Auto-Approve (Resume Graph for Audio)
         # ---------------------------------------------------------
-        logger.info(f"[Session {session_id}] Auto-approving HITL pause for UI Demo. Resuming Voice Alert...")
+        logger.info(
+            f"[Session {session_id}] Auto-approving HITL pause for UI Demo. Resuming Voice Alert..."
+        )
         gr.Info("Clinical reasoning completed. Synthesizing voice alert...")
-        
+
         # Passing 'None' as the state with the same thread_config tells LangGraph to RESUME
         final_state = omnimed_app.invoke(None, config=thread_config)
-        
+
         # Extract the final audio path
         audio_path: Optional[str] = final_state.get("voice_alert_path", None)
 
-        logger.info(f"[Session {session_id}] Analysis and Voice Synthesis completed successfully.")
+        logger.info(
+            f"[Session {session_id}] Analysis and Voice Synthesis completed successfully."
+        )
 
         if audio_path and os.path.exists(audio_path):
             return report, audio_path
@@ -87,8 +104,11 @@ def process_medical_case(
             return report, None
 
     except Exception as e:
-        logger.critical(f"Catastrophic UI failure during execution: {str(e)}", exc_info=True)
+        logger.critical(
+            f"Catastrophic UI failure during execution: {str(e)}", exc_info=True
+        )
         raise gr.Error(f"Catastrophic System Failure: {str(e)}")
+
 
 # =====================================================================
 # UI/UX DESIGN (GRADIO)
@@ -107,11 +127,13 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
             doc_input = gr.File(
                 label="Upload Document (Receipt/Prescription/X-Ray Image)"
             )
-            
+
             models_config = config.get_models()
             llm_model_input = gr.Dropdown(
                 choices=models_config.get("available_llms", []),
-                value=models_config.get("default_llm", "unsloth/llama-3-8b-Instruct-bnb-4bit"),
+                value=models_config.get(
+                    "default_llm", "unsloth/llama-3-8b-Instruct-bnb-4bit"
+                ),
                 label="🧠 Select Reasoning Model (LLM)",
                 info="Choose the local AI model for clinical reasoning (Requires Unsloth support).",
             )

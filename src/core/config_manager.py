@@ -4,11 +4,13 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+
 class ConfigManager:
     """
     Singleton class to securely load and serve YAML configurations.
     Prevents hardcoding prompts and model IDs inside core logic.
     """
+
     _instance = None
     _config = None
 
@@ -22,7 +24,7 @@ class ConfigManager:
         # Resolve the absolute path to the configs/system_config.yaml file
         base_dir = Path(__file__).resolve().parent.parent.parent
         config_path = base_dir / "configs" / "system_config.yaml"
-        
+
         try:
             with open(config_path, "r", encoding="utf-8") as f:
                 self._config = yaml.safe_load(f)
@@ -36,6 +38,7 @@ class ConfigManager:
 
     def get_prompt(self, prompt_name: str) -> str:
         return self._config.get("prompts", {}).get(prompt_name, "")
-        
+
+
 # Global instance to be imported by other modules
 config = ConfigManager()
