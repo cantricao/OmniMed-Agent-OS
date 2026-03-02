@@ -38,7 +38,7 @@ jobs:
     # STEP 4: Enforce PEP8 Code Formatting (Black)
     - name: Check code formatting with Black
       run: |
-        black --check src/ tests/ app.py
+        black --check --diff src/ tests/ app.py
 
     # STEP 5: Syntax and logic validation (Flake8)
     - name: Lint code with Flake8
