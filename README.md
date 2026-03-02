@@ -114,6 +114,7 @@ cp .env.example .env
 
 # 2. Build and run the container with GPU passthrough
 docker-compose up --build
+```
 ---
 
 ## 🔬 Technical Highlights for Data/ML Engineers
