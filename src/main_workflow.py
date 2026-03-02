@@ -2,6 +2,7 @@ import os
 import logging
 from typing import TypedDict, Optional, Dict, Any
 from langgraph.graph import StateGraph, END
+import re
 
 # Import our custom multimodal tools and local reasoning engine
 from src.tools.ocr_vision_tool import extract_medical_document_ocr
@@ -32,6 +33,7 @@ class MedicalState(TypedDict, total=False):
     prompt_text: Optional[str]
 
     ocr_extracted_text: Optional[str]
+    sanitized_text: Optional[str]
     rag_clinical_context: Optional[str]
     final_diagnosis: Optional[str]  
     voice_summary: Optional[str]    
@@ -63,7 +65,60 @@ def vision_node(state: MedicalState) -> Dict[str, Any]:
         # exc_info=True automatically attaches the stack trace to the log for easy debugging
         logger.error(f"[Vision Node Error]: {str(e)}", exc_info=True)
         return {"ocr_extracted_text": f"OCR Processing Failed: {str(e)}"}
+    
+    
+# =====================================================================
+# SECURITY COMPLIANCE: PHI/PII REDACTION ENGINE
+# =====================================================================
+def redact_sensitive_info(text: str) -> str:
+    """
+    Lightweight Regex-based engine to mask Protected Health Information (PHI).
+    Designed for local edge execution without requiring heavy NLP models.
+    """
+    if not text:
+        return ""
+        
+    # 1. Mask Vietnamese & Universal Phone Numbers (e.g., 09xxxx, +84...)
+    text = re.sub(r'(\+84|0[3|5|7|8|9])+([0-9]{8})\b', '[REDACTED_PHONE]', text)
+    
+    # 2. Mask Email Addresses
+    text = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '[REDACTED_EMAIL]', text)
+    
+    # 3. Mask Citizen ID Cards (CCCD - 12 digits) or standard 9-digit IDs
+    text = re.sub(r'\b\d{9,12}\b', '[REDACTED_ID]', text)
+    
+    # 4. Mask Dates (DOB, Examination Dates) - formats: dd/mm/yyyy or dd-mm-yyyy
+    text = re.sub(r'\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b', '[REDACTED_DATE]', text)
+    
+    return text
 
+def sanitization_node(state: MedicalState) -> Dict[str, Any]:
+    """
+    Intercepts the OCR text and removes sensitive personal data 
+    before it reaches the RAG or LLM reasoning modules.
+    """
+    logger.info("▶️ [STEP 1.5] EXECUTING DATA SANITIZATION NODE (HIPAA/GDPR Check)...")
+    
+    if state.get("error_message"):
+        return state
+        
+    try:
+        raw_text = state.get("ocr_extracted_text", "")
+        
+        # Skip masking if OCR failed or returned empty
+        if not raw_text or "Failed" in raw_text or "No document" in raw_text:
+            logger.warning("[Sanitization Node] No valid text to sanitize. Bypassing.")
+            return {"sanitized_text": raw_text}
+
+        # Apply redaction heuristics
+        safe_text = redact_sensitive_info(raw_text)
+        
+        logger.info("[Sanitization Node] PII/PHI successfully redacted.")
+        return {"sanitized_text": safe_text}
+        
+    except Exception as e:
+        logger.error(f"[Sanitization Node Error]: {str(e)}", exc_info=True)
+        return {"error_message": f"Security Module Failed: {str(e)}"}
 
 def rag_node(state: MedicalState) -> Dict[str, Any]:
     logger.info("▶️ [STEP 2] EXECUTING RAG NODE...")
@@ -90,7 +145,7 @@ def reasoning_node(state: MedicalState) -> Dict[str, Any]:
             {
                 "doctor_query": state.get("doctor_query", ""),
                 "rag_context": state.get("rag_clinical_context", ""),
-                "ocr_text": state.get("ocr_extracted_text", ""),
+                "ocr_text": state.get("sanitized_text", ""),
                 "model_name": selected_model,
             }
         )
@@ -152,12 +207,14 @@ def voice_node(state: MedicalState) -> Dict[str, Any]:
 workflow = StateGraph(MedicalState)
 
 workflow.add_node("Vision_OCR", vision_node)
+workflow.add_node("Data_Sanitization", sanitization_node)
 workflow.add_node("EHR_RAG", rag_node)
 workflow.add_node("Clinical_Reasoning", reasoning_node)
 workflow.add_node("Voice_Alert", voice_node)
 
 workflow.set_entry_point("Vision_OCR")
-workflow.add_edge("Vision_OCR", "EHR_RAG")
+workflow.add_edge("Vision_OCR", "Data_Sanitization")
+workflow.add_edge("Data_Sanitization", "EHR_RAG")
 workflow.add_edge("EHR_RAG", "Clinical_Reasoning")
 workflow.add_edge("Clinical_Reasoning", "Voice_Alert")
 workflow.add_edge("Voice_Alert", END)
