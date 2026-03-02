@@ -24,5 +24,6 @@ huggingface_hub
 # Graphics
 gradio
 
-# Env
+# Env and test
 python-dotenv
+pytest
