@@ -115,12 +115,12 @@ def process_medical_case(
 # =====================================================================
 with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
 
-# fmt: off
+    # fmt: off
     gr.Markdown("""
         # 🏥 OmniMed-Agent-OS: Multimodal Medical Assistant
         *A fully localized, privacy-first AI system for analyzing medical records locally on constrained hardware.*
         """)
-# fmt: on
+    # fmt: on
 
     with gr.Row():
         with gr.Column(scale=1):
