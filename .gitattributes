@@ -1,1 +1,1 @@
-echo "*.py text eol=lf" > .gitattributes
+echo *.py text eol=lf > .gitattributes
