@@ -3,16 +3,10 @@ from unittest.mock import MagicMock
 
 # =====================================================================
 # ENTERPRISE MOCKING: FAKE HEAVY ML LIBRARIES FOR CI
-# We mock 'unsloth' and 'torch' BEFORE importing our local modules 
+# We mock 'unsloth' and 'torch' BEFORE importing our local modules
 # to prevent ModuleNotFoundError on CPU-only CI environments.
 # =====================================================================
-mock_modules = [
-    "unsloth", 
-    "unsloth.models", 
-    "triton", 
-    "xformers",
-    "bitsandbytes"
-]
+mock_modules = ["unsloth", "unsloth.models", "triton", "xformers", "bitsandbytes"]
 for module in mock_modules:
     sys.modules[module] = MagicMock()
 
