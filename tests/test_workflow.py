@@ -16,6 +16,8 @@ mock_modules = [
     "docling.document_converter",
     "transformers",
     "torch",
+    "torchaudio",
+    "voxcpm",
 ]
 for module in mock_modules:
     sys.modules[module] = MagicMock()
