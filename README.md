@@ -16,6 +16,43 @@
 
 Built with strict privacy constraints and biomedical data analytics principles, the system runs entirely on local hardware (optimized for constrained GPUs like the Tesla T4) without transmitting sensitive Protected Health Information (PHI) to external APIs.
 
+## 🏗️ System Architecture
+
+OmniMed-Agent-OS utilizes a **State-Driven Agentic Workflow** powered by LangGraph. The system ensures medical data integrity through a strict pipeline with a built-in privacy layer.
+
+```mermaid
+graph TD
+    %% Input Layer
+    User((Doctor/User)) -->|Upload Image/PDF| App[Gradio Web UI]
+    User -->|Voice/Text Query| App
+
+    subgraph "OmniMed Core Engine (LangGraph)"
+        %% Process Nodes
+        A[Vision_OCR Node] -->|Raw Text| B(Data_Sanitization Node)
+        B -->|Redacted Text| C(EHR_RAG Node)
+        
+        %% Database & Models
+        D[(ChromaDB Vector Store)] <-->|Context Retrieval| C
+        C --> E(Clinical_Reasoning Node)
+        
+        %% Security & Control
+        E -->|Final Diagnosis| F{Human-in-the-Loop}
+        
+        %% Outputs
+        F -->|Approved| G[Voice_Alert Node]
+        F -->|Rejected| H[System Reset/Retry]
+    end
+
+    %% Final Outputs
+    G -->|Audio Stream| Out1((Voice Notification))
+    E -->|Text Stream| Out2((Clinical Report))
+
+    %% Styling
+    style B fill:#f96,stroke:#333,stroke-width:2px
+    style F fill:#32CD32,stroke:#333,stroke-width:2px
+    style D fill:#6495ED,stroke:#333,stroke-width:2px
+  ```
+
 ## 🎯 Expected Output & Demo
 
 <div align="center">
