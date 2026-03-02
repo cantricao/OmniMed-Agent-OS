@@ -3,7 +3,7 @@ from unittest.mock import patch, MagicMock
 from typing import Dict, Any
 
 # Import the workflow and state definition from our core module
-from src.core.main_workflow import omnimed_app, MedicalState
+from src.main_workflow import omnimed_app, MedicalState
 
 # =====================================================================
 # UNIT TESTS FOR LANGGRAPH WORKFLOW (MOCKED AI COMPONENTS)
