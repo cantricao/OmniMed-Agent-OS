@@ -6,7 +6,6 @@ from langgraph.checkpoint.memory import MemorySaver
 import re
 from src.core.config_manager import config
 
-
 # Import our custom multimodal tools and local reasoning engine
 from src.tools.ocr_vision_tool import extract_medical_document_ocr
 from src.tools.ehr_rag_tool import search_patient_records
