@@ -132,9 +132,7 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
             models_config = config.get_models()
             llm_model_input = gr.Dropdown(
                 choices=models_config.get("available_llms", []),
-                value=models_config.get(
-                    "default_llm", "unsloth/llama-3-8b-Instruct-bnb-4bit"
-                ),
+                value=models_config.get("default_llm"),
                 label="🧠 Select Reasoning Model (LLM)",
                 info="Choose the local AI model for clinical reasoning (Requires Unsloth support).",
             )
@@ -142,7 +140,7 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
             query_input = gr.Textbox(
                 label="Doctor's Query / Analysis Command",
                 lines=3,
-                value="Đây là hóa đơn thanh toán của bệnh nhân. Hãy trích xuất danh sách các mặt hàng/dịch vụ, đơn giá tương ứng và tổng số tiền phải thanh toán từ hình ảnh này.",
+                value=config.get_prompt("doctor_query"),
             )
 
             with gr.Accordion("🎙️ Voice Cloning Configuration (Optional)", open=False):

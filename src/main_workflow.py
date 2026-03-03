@@ -4,6 +4,8 @@ from typing import TypedDict, Optional, Dict, Any
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 import re
+from src.core.config_manager import config
+
 
 # Import our custom multimodal tools and local reasoning engine
 from src.tools.ocr_vision_tool import extract_medical_document_ocr
@@ -259,7 +261,7 @@ if __name__ == "__main__":
     logger.info("=" * 50)
 
     test_state: MedicalState = {
-        "doctor_query": "Đây là hóa đơn thanh toán của bệnh nhân. Hãy trích xuất danh sách các mặt hàng.",
+        "doctor_query": config.get_prompt("doctor_query"),
         "patient_id": "BN_001",
         "document_path": "data/images/test_receipt.jpg",
         "prompt_wav_path": "data/voice_alerts/sample.wav",
