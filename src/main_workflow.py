@@ -4,13 +4,13 @@ from typing import TypedDict, Optional, Dict, Any
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 import re
-from src.core.config_manager import config
 
 # Import our custom multimodal tools and local reasoning engine
 from src.tools.ocr_vision_tool import extract_medical_document_ocr
 from src.tools.ehr_rag_tool import search_patient_records
 from src.tools.voice_tts_tool import generate_clinical_voice_alert
 from src.core.local_llm import invoke_clinical_reasoning
+from src.core.config_manager import config
 
 # =====================================================================
 # 0. ENTERPRISE LOGGING CONFIGURATION
@@ -283,9 +283,18 @@ if __name__ == "__main__":
 
         # Manually prompt the user (Doctor) in the CLI
         print("\n" + "=" * 50)
-        user_input = input(
-            "👨‍⚕️ ACTION REQUIRED: Approve this report to generate Voice Alert? (y/n): "
-        )
+
+        auto_approve = os.getenv("AUTO_APPROVE", "false").lower() in ("true", "1", "t")
+
+        if auto_approve:
+            print(
+                "🤖 [Colab Mode] AUTO_APPROVE enabled. Automatically generating Voice Alert..."
+            )
+            user_input = "y"
+        else:
+            user_input = input(
+                "👨‍⚕️ ACTION REQUIRED: Approve this report to generate Voice Alert? (y/n): "
+            )
 
         if user_input.lower().strip() == "y":
             logger.info(

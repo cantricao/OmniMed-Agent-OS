@@ -139,7 +139,7 @@ python app.py
 For developers or deployment on GUI-less Linux servers, you can bypass the Gradio interface and execute the LangGraph workflow directly via the command line interface (CLI). This is ideal for CI/CD pipeline testing or batch processing.
 
 ```bash
-python -m src.main_workflow
+AUTO_APPROVE=true python -m src.main_workflow
 ```
 ---
 
