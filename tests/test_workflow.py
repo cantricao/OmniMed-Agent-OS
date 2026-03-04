@@ -1,6 +1,6 @@
 import sys
-from unittest.mock import MagicMock, patch
 import pytest
+from unittest.mock import MagicMock, patch
 
 # =====================================================================
 # ENTERPRISE MOCKING: FAKE HEAVY ML LIBRARIES FOR CI
@@ -39,7 +39,7 @@ def sample_initial_state():
 
 
 # =====================================================================
-# 1. FIX CHO TEST VISION NODE
+# 1. VISION NODE ISOLATION TEST
 # =====================================================================
 @patch("os.path.exists")
 @patch("src.main_workflow.extract_medical_document_ocr")
@@ -48,8 +48,10 @@ def test_vision_node_success(mock_ocr_tool, mock_exists, sample_initial_state):
     Tests the Vision node in isolation to ensure it correctly updates
     the state when OCR succeeds.
     """
+    # Force the OS to always return True when checking file existence
     mock_exists.return_value = True
 
+    # Setup mock return value for the OCR tool
     mock_ocr_tool.invoke.return_value = "Mocked receipt text."
 
     result = vision_node(sample_initial_state)
@@ -59,7 +61,7 @@ def test_vision_node_success(mock_ocr_tool, mock_exists, sample_initial_state):
 
 
 # =====================================================================
-# 2. FIX CHO TEST FULL PIPELINE (HITL COMPLIANCE)
+# 2. FULL PIPELINE TEST (HITL COMPLIANCE)
 # =====================================================================
 @patch("os.path.exists")
 @patch("src.main_workflow.extract_medical_document_ocr")
@@ -72,8 +74,10 @@ def test_full_langgraph_pipeline_execution(
     """
     Tests the entire LangGraph orchestration with Human-in-the-Loop memory.
     """
+    # Mock virtual file path to exist
     mock_exists.return_value = True
 
+    # Mock all internal tools within the LangGraph pipeline
     mock_ocr.invoke.return_value = "Mocked OCR text"
     mock_rag.invoke.return_value = "Mocked RAG Context"
     mock_reasoning.invoke.return_value = {
@@ -82,9 +86,12 @@ def test_full_langgraph_pipeline_execution(
     }
     mock_voice.invoke.return_value = "audio.wav"
 
+    # Provide thread configuration required by LangGraph checkpointer
     thread_config = {"configurable": {"thread_id": "ci_test_thread"}}
 
+    # Execute the graph with thread configuration
     result = omnimed_app.invoke(sample_initial_state, config=thread_config)
 
+    # Execution halts at Human-in-the-Loop node; verify initial output
     assert result is not None
     assert "ocr_extracted_text" in result
