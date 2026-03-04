@@ -1,9 +1,10 @@
 import os
-
-# [FIXED] Updated to use the dedicated langchain-chroma package
+import logging
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.tools import tool
+
+logger = logging.getLogger(__name__)
 
 # =====================================================================
 # CONFIGURATION
@@ -11,48 +12,57 @@ from langchain.tools import tool
 EMBEDDING_MODEL_NAME = "bkai-foundation-models/vietnamese-bi-encoder"
 CHROMA_DB_DIR = "./data/vietnamese_med_corpus/chroma_db"
 
+_EMBEDDINGS_CACHE = None
+_CHROMA_DB_CACHE = None
+
 
 def get_vietnamese_vector_db() -> Chroma:
-    """
-    Initializes the embedding model and connects to the local Chroma database.
-    """
-    embeddings = HuggingFaceEmbeddings(
-        model_name=EMBEDDING_MODEL_NAME,
-        model_kwargs={"device": "cuda"},
-        encode_kwargs={"normalize_embeddings": True},
-    )
+    global _EMBEDDINGS_CACHE, _CHROMA_DB_CACHE
 
-    db = Chroma(
-        collection_name="vietnamese_ehr_records",
-        embedding_function=embeddings,
-        persist_directory=CHROMA_DB_DIR,
-    )
-    return db
+    if _EMBEDDINGS_CACHE is None:
+        logger.info(
+            "🧠 [RAG Singleton] Loading Embedding Model into VRAM for the first time..."
+        )
+        _EMBEDDINGS_CACHE = HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL_NAME,
+            model_kwargs={"device": "cuda"},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+
+    if _CHROMA_DB_CACHE is None:
+        logger.info("💾 [RAG Singleton] Connecting to ChromaDB...")
+        _CHROMA_DB_CACHE = Chroma(
+            collection_name="vietnamese_ehr_records",
+            embedding_function=_EMBEDDINGS_CACHE,
+            persist_directory=CHROMA_DB_DIR,
+        )
+
+    return _CHROMA_DB_CACHE
 
 
 @tool
 def search_patient_records(query: str) -> str:
-    """
-    Use this tool to search for patient medical records (EHR), clinical notes,
-    allergies, and medical history from the localized Vietnamese Vector Database.
-    """
+    """Use this tool to search for patient medical records..."""
     try:
-        print(f"🔍 [RAG Node] Executing semantic search for query: '{query}'...")
+        logger.info(f"🔍 [RAG Node] Executing semantic search for query: '{query}'...")
 
         db = get_vietnamese_vector_db()
         docs = db.similarity_search(query, k=3)
 
         if not docs:
+            logger.warning(
+                "No relevant medical data found in the patient records database."
+            )
             return "WARNING: No relevant medical data found in the patient records database."
 
         context = "\n\n--- RETRIEVED MEDICAL CONTEXT ---\n\n".join(
             [doc.page_content for doc in docs]
         )
 
-        print("✅ [RAG Node] Successfully retrieved relevant medical history.")
+        logger.info("✅ [RAG Node] Successfully retrieved relevant medical history.")
         return f"Retrieved Context from Vietnamese EHR Database:\n\n{context}"
 
     except Exception as e:
-        error_msg = f"CRITICAL ERROR retrieving RAG data: {str(e)}"
-        print(f"❌ {error_msg}")
+        error_msg = f"CRITICAL ERROR retrieving RAG context: {str(e)}"
+        logger.error(f"❌ {error_msg}", exc_info=True)
         return error_msg
