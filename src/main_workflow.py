@@ -3,6 +3,7 @@ from typing import TypedDict, Optional, Dict, Any
 from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 import re
+import os
 
 # Import our custom multimodal tools and local reasoning engine
 from src.tools.ocr_vision_tool import extract_medical_document_ocr
