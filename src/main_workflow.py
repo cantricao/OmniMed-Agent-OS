@@ -265,7 +265,7 @@ if __name__ == "__main__":
         "patient_id": "BN_001",
         "document_path": "data/images/test_receipt.jpg",
         "prompt_wav_path": "data/voice_alerts/sample.wav",
-        "prompt_text": "Ai đây tức là một kẻ ăn mày vậy. Anh ta chưa kịp quay đi thì đã thấy mấy con chó vàng chạy xồng xộc ra cứ nhảy xổ vào chân anh.",
+        "prompt_text": config.get_prompt("video_prompt"),
     }
 
     # Unique thread ID to track this specific patient's session

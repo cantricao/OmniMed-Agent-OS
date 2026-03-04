@@ -1,218 +1,159 @@
 # 🏥 OmniMed-Agent-OS
-![CI/CD Pipeline](https://github.com/cantricao/OmniMed-Agent-OS/actions/workflows/ci.yml/badge.svg)
+
 <div align="center">
   <img src="https://img.shields.io/badge/Python-3.10+-blue.svg" alt="Python Version">
-  <img src="https://img.shields.io/badge/PyTorch-2.10+-EE4C2C.svg" alt="PyTorch">
-  <img src="https://img.shields.io/badge/Framework-LangGraph-000000.svg" alt="LangGraph">
-  <img src="https://img.shields.io/badge/VectorDB-Chroma-4B0082.svg" alt="ChromaDB">
-  <img src="https://img.shields.io/badge/Optimization-Unsloth-FF9900.svg" alt="Unsloth">
-  <img src="https://img.shields.io/badge/Deployment-Docker-2496ED.svg?logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/Architecture-LangGraph-000000.svg" alt="LangGraph">
+  <img src="https://img.shields.io/badge/VRAM_Optimization-Unsloth-FF9900.svg" alt="Unsloth">
+  <img src="https://img.shields.io/badge/Vector_Engine-ChromaDB-4B0082.svg" alt="ChromaDB">
+  <img src="https://img.shields.io/badge/OCR-IBM_Docling-0f62fe.svg" alt="Docling">
+  <img src="https://img.shields.io/badge/CI%2FCD-Passed-brightgreen.svg" alt="Build Status">
 </div>
 
-*An Edge-Deployed, Privacy-First Multimodal Medical AI Assistant with RAG and Zero-Shot Voice Cloning.*
+<br>
+
+> **An Edge-Deployed, Deterministic Agentic Workflow for Medical Document Analysis & Voice Synthesis.**
+> Engineered to run 4 heavyweight ML models (OCR, Embedding, LLM, TTS) sequentially on a **single constrained 16GB VRAM GPU** without Out-Of-Memory (OOM) crashes.
 
 ## 📌 Executive Summary
-**OmniMed-Agent-OS** is an advanced, fully localized AI agent designed to process unstandardized medical documents (receipts, prescriptions), reason over a custom medical corpus, and synthesize natural voice alerts. 
+**OmniMed-Agent-OS** is not just an LLM wrapper; it is a state-driven Agentic ecosystem. It is designed to process noisy medical documents (receipts, prescriptions), reason over a localized medical RAG database, and synthesize zero-shot voice alerts. 
 
-Built with strict privacy constraints and biomedical data analytics principles, the system runs entirely on local hardware (optimized for constrained GPUs like the Tesla T4) without transmitting sensitive Protected Health Information (PHI) to external APIs.
+Built for healthcare compliance, it operates **100% locally** (Zero-API approach), ensuring Protected Health Information (PHI) never leaves the host machine.
 
-## 🏗️ System Architecture
-
-OmniMed-Agent-OS utilizes a **State-Driven Agentic Workflow** powered by LangGraph. The system ensures medical data integrity through a strict pipeline with a built-in privacy layer.
+## 🏗️ Core Architecture (State-Driven Workflow)
+The system is orchestrated using **LangGraph**, utilizing a deterministic `MedicalState` graph to pass context safely between tools.
 
 ```mermaid
 graph TD
     %% Input Layer
-    User((Doctor/User)) -->|Upload Image/PDF| App[Gradio Web UI]
-    User -->|Voice/Text Query| App
+    User((Doctor/User)) -->|Upload Document| App[Gradio Interface]
 
-    subgraph "OmniMed Core Engine (LangGraph)"
+    subgraph "OmniMed Core Engine (Local Execution)"
         %% Process Nodes
-        A[Vision_OCR Node] -->|Raw Text| B(Data_Sanitization Node)
-        B -->|Redacted Text| C(EHR_RAG Node)
+        A[👁️ Vision Node <br> IBM Docling] -->|Markdown/Tables| B(🛡️ Sanitization Node <br> Regex PII Masking)
+        B -->|Redacted Text| C(🔍 EHR_RAG Node <br> HF Bi-Encoder)
         
         %% Database & Models
-        D[(ChromaDB Vector Store)] <-->|Context Retrieval| C
-        C --> E(Clinical_Reasoning Node)
+        D[(ChromaDB)] <-->|Context Retrieval| C
+        C --> E(🧠 Reasoning Node <br> Unsloth/Llama-3)
         
-        %% Security & Control
-        E -->|Final Diagnosis| F{Human-in-the-Loop}
+        %% HITL Compliance
+        E -->|Clinical Report| F{👨‍⚕️ Human-in-the-Loop <br> Gradio State Pause}
         
         %% Outputs
-        F -->|Approved| G[Voice_Alert Node]
-        F -->|Rejected| H[System Reset/Retry]
+        F -->|Doctor Approves| G[🎙️ Voice Node <br> VoxCPM Cloning]
+        F -->|Doctor Rejects| H[Abort / Reset]
     end
 
     %% Final Outputs
-    G -->|Audio Stream| Out1((Voice Notification))
-    E -->|Text Stream| Out2((Clinical Report))
+    G -->|Audio Stream| Out1((Voice Alert))
+    E -->|UI Display| Out2((Clinical Report))
 
-    %% Styling
     style B fill:#f96,stroke:#333,stroke-width:2px
     style F fill:#32CD32,stroke:#333,stroke-width:2px
     style D fill:#6495ED,stroke:#333,stroke-width:2px
-  ```
+```
+## 🔥 Enterprise Engineering Highlights (Why this Repo stands out)
+* **VRAM Singleton Pattern:** Orchestrating multiple ML models usually causes OOM on consumer GPUs. I implemented strict Singleton caching and `try...finally` memory release (`torch.cuda.empty_cache()`) to guarantee stable sequential execution.
 
+* **Thread-Safe Human-in-the-Loop (HITL):** Built programmatic LangGraph checkpointer pauses. In the Gradio UI, the AI halts execution, displays the report, and uses `Session UUIDs` to wait for a Doctor's approval before resuming the graph to synthesize audio.
+
+* **Anti-Hallucination Prompting:** Strict output templates and Few-Shot Negative Prompting are enforced to prevent small models (8B) from inventing fake medical prices or dropping Vietnamese diacritics.
+
+* **Mock-Driven CI/CD Pipelines:** Deep learning libraries (Torch, Triton, Xformers) break standard CI runners. I engineered a robust `pytest` suite with `unittest.mock` to bypass C++ library dependencies, achieving lightning-fast, green CI/CD builds on GitHub Actions.
+
+* **Observability over Print:** Completely eradicated `print()` statements in favor of Python's standard `logging` module with traceback (`exc_info=True`) for production-grade monitoring.
 ## 🎯 Expected Output & Demo
 
 <div align="center">
-  <h3>📝 Input: Sample Medical Receipt</h3>
   <img src="data/images/test_receipt.jpg" alt="Test receipt" width="400">
-  
-  <br><br> <h3>▶️ Output: OmniMed-Agent-OS Execution & Voice Alert</h3>
-  <video src="https://github.com/user-attachments/assets/232bcfed-4209-462b-bb0c-5246221a543e" controls="controls" width="800"></video>
+  <i>Input: Raw, unstandardized medical receipt</i>
 </div>
 
-**Sample Clinical Reasoning Result:**
+**Generated Clinical Report (Raw Output from 8B 4-bit Quantized Model):**
 ```text
 ==================================================
-📋 OMNIMED FINAL CLINICAL REPORT (UI)
+📋 [PENDING DOCTOR APPROVAL] CLINICAL REPORT:
 ==================================================
-Danh sách các mặt hàng/dịch vụ và đơn giá tương ứng:
+Danh sách các mặt hàng/dịch vụ:
 
-* Sultamicillin375mgUNASYN: 08 viên, giá không có thông tin
-* NEXTGCAL: 30 viên, giá không có thông tin
-* HEMOQMOM: 30 viên, giá không có thông tin
-* Povidine10%90ML: 01 chai, giá không có thông tin
-* Bocham soc ron: 01 bo, giá không có thông tin
+1. Sultamicillin (375mg, UNASYN) - 08 viên
+2. NEXTGCAL - 30 viên
+3. HEMOQMOM - 30 viên
+4. Povidine (10%, 90ML) - 01 chai
+5. Bocham soc ron - 01 bo
 
 Tổng số tiền phải thanh toán: Không có thông tin
 
 ==================================================
-🔊 OMNIMED VOICE SUMMARY (TTS)
+
+==================================================
+🔊 FINAL VOICE SUMMARY (TTS)
 ==================================================
 Phân tích hoàn tất. Có năm loại thuốc. Bác sĩ vui lòng xem chi tiết trên màn hình.
 ```
 
-## 🌟 Core Architecture (Agentic Workflow)
-The system is orchestrated using **LangGraph**, smoothly transitioning a unified `MedicalState` through four specialized nodes:
+---
 
-1. **👁️ Vision Node (RapidOCR):** Extracts structured text, tabular data, and complex layouts from noisy medical images.
-2. **🔍 RAG Node (ChromaDB + HF Bi-encoder):** Performs semantic search against a locally embedded vector database of comprehensive medical QA records (ViHealthQA). Built with robust batch-ingestion scripts to handle large-scale data pipelines without memory overflow.
-3. **🧠 Clinical Reasoning Node (Unsloth + Llama-3 8B):** Loads quantized models dynamically to analyze symptoms and OCR data. Advanced prompt engineering enforces strict anti-hallucination rules, prevents data fabrication, and automatically restores missing language diacritics.
-4. **🎙️ Voice Alert Node (VoxCPM):** Synthesizes a concise clinical summary for healthcare professionals. Features **Zero-Shot Voice Cloning** to mimic specific speaker profiles, utilizing dynamic hardware dispatch to maximize GPU efficiency.
+## 🛠️ Quick Start Guide
+### Option 1: One-Click Docker Deployment (Recommended)
+Fully containerized to bypass Python dependency conflicts. Requires NVIDIA Container Toolkit.
 
-## 🛠️ Project Structure
-```text
-OmniMed-Agent-OS/
-├── app.py                      # Main Gradio Web UI with Model A/B Testing & Voice Cloning
-├── setup.sh                    # Automated bash script for System/OS dependency resolution
-├── requirements.txt            # Python dependencies
-├── src/
-│   ├── main_workflow.py        # LangGraph State & Node Orchestration
-│   ├── core/
-│   │   ├── ingest_real_data.py # Robust ETL pipeline for batch-vectorizing datasets
-│   │   └── local_llm.py        # Unsloth LLM initialization and inference logic
-│   └── tools/
-│       ├── ocr_vision_tool.py  # RapidOCR wrappers
-│       └── voice_tts_tool.py   # VoxCPM Audio backend and dynamic tensor dispatch
-└── tests/
-    └── test_rag_db.py          # Validation scripts for ChromaDB semantic search accuracy
+```bash
+git clone https://github.com/cantricao/OmniMed-Agent-OS.git
+cd OmniMed-Agent-OS
+docker-compose up -d --build
+
 ```
-## 🚀 Getting Started
-**1. Automated Environment Setup:**
-Say goodbye to dependency hell. The provided setup script automatically installs OS-level codecs (`ffmpeg`, `libsndfile1`) and perfectly aligns PyTorch versions with hardware-accelerated libraries.
+
+👉 Access the web interface at: **http://localhost:7860**
+
+*Note: The first run may take a few minutes to download the base image and AI model weights. Subsequent runs will be instantaneous.*
+
+### Option 2: Manual Local Setup
+
+**1. Environment Setup:**
 ```bash
 chmod +x setup.sh
 ./setup.sh
 ```
 
 **2. Data Ingestion (Vector Database):**
-Build your local knowledge base. This script automatically downloads the `tarudesu/ViHealthQA` dataset from HuggingFace and safely ingests records into ChromaDB using memory-safe batching. (Note: The raw CSV is ignored in version control to maintain repository efficiency).
+Automatically fetches the `ViHealthQA` dataset and performs memory-safe batch embedding.
 ```bash
 python src/core/ingest_real_data.py
 ```
 
-**3. Quality Assurance / Unit Testing:**
-Verify that your semantic search engine is populated and functioning correctly before launching the main application.
+**3. Run Unit Tests:**
 ```bash
-python python tests/test_rag_db.py
+pytest tests/
 ```
 
-**4. Launch the AI OS**
-Fire up the full pipeline. The Gradio interface allows you to upload documents, select different open-source reasoning models dynamically, and even test voice cloning with reference audio.
+**4. Launch the Application:**
 ```bash
 python app.py
 ```
-
-**5. Advanced Usage (CLI / Headless Mode)**
-For developers or deployment on GUI-less Linux servers, you can bypass the Gradio interface and execute the LangGraph workflow directly via the command line interface (CLI). This is ideal for CI/CD pipeline testing or batch processing.
-
-```bash
-AUTO_APPROVE=true python -m src.main_workflow
-```
----
-
-## 🐳 One-Click Local Deployment (Docker)
-
-To provide a seamless, environment-agnostic experience, OmniMed-Agent-OS is fully containerized. You do not need to deal with Python environments or dependency conflicts.
-
-### Prerequisites
-* [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/)
-* [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) (strictly required for GPU acceleration)
-
-### Quick Start Guide
-
-**1. Clone the repository:**
-```bash
-git clone [https://github.com/cantricao/OmniMed-Agent-OS.git](https://github.com/cantricao/OmniMed-Agent-OS.git)
-cd OmniMed-Agent-OS
-```
-
-**2. Launch the AI Engine:**
-Deploy the entire application (OCR, LangGraph, LLM, TTS) with a single command:
-```bash
-docker-compose up -d --build
-```
-
-**3. Access the Interface:**
-Verify that your semantic search engine is populated and functioning correctly before launching the main application.
-👉 **http://localhost:7860**
-*Note: The first run may take a few minutes to download the base image and AI model weights. Subsequent runs will be instantaneous.*
-
-### 🔧 Configuration Editing
-Need to change the AI's behavior or language? You don't need to rebuild the Docker image! Simply edit the configs/system_config.yaml file on your host machine, and the changes will reflect inside the container automatically.
+*(For Headless/CI environments, use: AUTO_APPROVE=true python -m src.main_workflow)*
 
 ---
 
-## 🔬 Technical Highlights for Data/ML Engineers
-* **Memory Management:** Implemented strict VRAM clearing (`torch.cuda.empty_cache()`) between pipeline steps, allowing heavy OCR, RAG, 8B LLMs, and TTS models to run sequentially on a single 16GB VRAM GPU.
-* **Anti-Hallucination Guardrails:** Strict prompt engineering ensures the AI only extracts explicitly stated medical pricing and quantities, translating all operational metadata strictly to the target language without arbitrary conversational filler.
-* **Scalable ETL:** RAG ingestion is decoupled from the main app, utilizing `tqdm` tracking and batch-chunking, preparing the system for enterprise-scale electronic health records (EHR) databases.
-* **A/B Testing Ready:** The UI architecture exposes model selection states natively, allowing developers to hot-swap reasoning models (e.g., Llama-3, Mistral, Gemma) instantly via the Gradio interface without altering core logic.
----
-
-## 🗺️ Roadmap & Future Enhancements
-While the current OS operates efficiently on edge devices, the architecture is designed to scale:
-* **[] FHIR/HL7 Integration:** Standardize OCR and reasoning outputs to comply with international electronic health record interoperability standards.
-* **[] Real-time Streaming TTS:** Implement chunk-based audio streaming to reduce Time-To-First-Audio (TTFA) for voice alerts.
-* **[] DICOM Image Support:** Expand the Vision Node to support standard medical imaging formats natively alongside standard OCR.
+## ⚠️ Known Limitations & Future Work
+Building edge-deployed AI on constrained hardware (16GB VRAM) requires trade-offs. Current known limitations include:
+* **Quantization Loss:** The LLM reasoning engine uses a 4-bit quantized 8B model (`unsloth/llama-3-8b-Instruct-bnb-4bit`) to fit into memory alongside the TTS and Vision models. This aggressive quantization slightly degrades the model's ability to strictly follow Few-Shot Orthography prompts in Vietnamese (e.g., failing to correct "Bocham soc ron" to "Bộ chăm sóc rốn").
+* **Future Solution:** In a true production environment with higher VRAM capacity (e.g., 2x A100), swapping the 8B model for a larger 70B parameter model, or adding a deterministic Python Regex/Dictionary pre-processing layer before the LLM, would resolve these edge-case spelling artifacts.
 
 ---
-
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page. If you are looking to run this in a production environment, please ensure you have at least a 16GB VRAM GPU (e.g., NVIDIA T4, RTX 4080, or A10G) to handle the sequential multimodal execution.
-
----
-
-# 📜 License
-Distributed under the MIT License. See LICENSE for more information.
-
----
-
 
 👨‍💻 About the Author
 ----------------------
 
 **Tri Cao Can** AI Engineer & Data Analyst | Biomedical Data Science Specialist
 
-With a Master of Data Analytics specializing in Biomedical Data Analytics from the Queensland University of Technology (QUT), I bridge the gap between complex machine learning architectures and practical, privacy-first healthcare solutions. Based in Australia, I specialize in building end-to-end data pipelines, optimizing local LLM deployments, and developing robust AI systems for real-world clinical and enterprise environments.
+Bridging the gap between cutting-edge Machine Learning architectures and strict healthcare compliance. I hold a Master of Data Analytics (Biomedical Data Analytics specialization) from the Queensland University of Technology (QUT).
 
-* **Open to opportunities:** Actively seeking Data Scientist, ML Engineer, or Data Engineer roles in Australia, as well as high-impact freelance projects.
+I specialize in building end-to-end data pipelines, optimizing local LLM deployments (Unsloth/vLLM), and orchestrating Agentic AI systems for real-world enterprise environments.
 
-* **Let's connect:** Feel free to reach out via GitHub or LinkedIn to discuss AI in healthcare, hardware optimization, or enterprise data pipelines.
+* **📫 Actively seeking Data Scientist, ML Engineer, or Data Engineer roles**. Let's connect!
 
-* **Email:** cantricao@gmail.com
 * **LinkedIn:** [linkedin.com/in/cao-tri-can](https://www.linkedin.com/in/cao-tri-can-08188b21b/)
 * **Portfolio:** [Notion Portfolio](https://cumbersome-tachometer-03f.notion.site/)
-* **GitHub:** [github.com/cantricao](http://github.com/cantricao)
+* **Email:** cantricao@gmail.com

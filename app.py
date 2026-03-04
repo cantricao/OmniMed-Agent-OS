@@ -163,7 +163,7 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
                 ref_text_input = gr.Textbox(
                     label="Reference Text",
                     lines=2,
-                    value="Ai đây tức là một kẻ ăn mày vậy...",
+                    value=config.get_prompt("video_prompt"),
                 )
 
             # BUTTON 1: Trigger Phase 1
