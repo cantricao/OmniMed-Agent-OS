@@ -277,25 +277,22 @@ if __name__ == "__main__":
         initial_run_state = omnimed_app.invoke(test_state, config=thread_config)
 
         # Display the AI's clinical reasoning for the Doctor to review
-        # Output the report to terminal securely
-        logger.info("📋 [PENDING DOCTOR APPROVAL] CLINICAL REPORT:")
-        logger.info("=" * 50)
-        logger.info(
-            f"\n{initial_run_state.get('final_diagnosis', 'No diagnosis generated.')}"
-        )
+        print("\n" + "=" * 50)
+        print("📋 [PENDING DOCTOR APPROVAL] CLINICAL REPORT:")
+        print("=" * 50)
+        print(initial_run_state.get("final_diagnosis", "No diagnosis generated."))
 
         # Manually prompt the user (Doctor) in the CLI
-        logger.info("\n" + "=" * 50)
+        print("\n" + "=" * 50)
 
         auto_approve = os.getenv("AUTO_APPROVE", "false").lower() in ("true", "1", "t")
 
         if auto_approve:
-            logger.info(
+            print(
                 "🤖 [Colab Mode] AUTO_APPROVE enabled. Automatically generating Voice Alert..."
             )
             user_input = "y"
         else:
-            # We must use standard input() here for CLI interaction to pause execution
             user_input = input(
                 "👨‍⚕️ ACTION REQUIRED: Approve this report to generate Voice Alert? (y/n): "
             )
@@ -307,10 +304,10 @@ if __name__ == "__main__":
             # Second invocation: Passing None with the same config resumes the paused graph
             final_state = omnimed_app.invoke(None, config=thread_config)
 
-            logger.info("\n" + "=" * 50)
-            logger.info("🔊 FINAL VOICE SUMMARY (TTS)")
-            logger.info("=" * 50)
-            logger.info(final_state.get("voice_summary"))
+            print("\n" + "=" * 50)
+            print("🔊 FINAL VOICE SUMMARY (TTS)")
+            print("=" * 50)
+            print(final_state.get("voice_summary"))
             logger.info(f"🎙️ AUDIO ALERT PATH: {final_state.get('voice_alert_path')}")
         else:
             logger.warning("❌ Doctor Rejected the report. Voice synthesis cancelled.")
