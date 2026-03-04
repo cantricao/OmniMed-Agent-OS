@@ -1,15 +1,20 @@
 import gradio as gr
 import os
 import logging
-import uuid  # [NEW] Import uuid to generate unique session IDs
+import uuid
+from pathlib import Path
 from typing import Any, Tuple, Optional
-from src.core.main_workflow import omnimed_app
+from src.main_workflow import omnimed_app
 from src.core.config_manager import config
 
 # =====================================================================
 # ENTERPRISE LOGGING CONFIGURATION
 # =====================================================================
 logger = logging.getLogger(__name__)
+
+# Dynamic Pathing
+BASE_DIR = Path(__file__).resolve().parent
+DEFAULT_AUDIO_PATH = BASE_DIR / "data" / "voice_alerts" / "sample.wav"
 
 
 # =====================================================================
@@ -177,11 +182,9 @@ with gr.Blocks(title="OmniMed-Agent-OS", theme=gr.themes.Soft()) as demo:
             llm_model_input,
         ],
         outputs=[report_output, audio_output],
+        concurrency_limit=1,
     )
 
 if __name__ == "__main__":
     logger.info("🚀 Launching OmniMed Web Interface on local server...")
     demo.launch(share=True, debug=True)
-
-
-# [CI/CD] Dummy trigger to sync Black formatting
