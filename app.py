@@ -4,7 +4,7 @@ import logging
 import uuid
 from pathlib import Path
 from typing import Any, Tuple, Optional
-from src.core.main_workflow import omnimed_app
+from src.main_workflow import omnimed_app
 from src.core.config_manager import config
 
 logger = logging.getLogger(__name__)
