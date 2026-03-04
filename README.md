@@ -54,20 +54,30 @@ graph TD
 ```
 ## 🔥 Enterprise Engineering Highlights (Why this Repo stands out)
 * **VRAM Singleton Pattern:** Orchestrating multiple ML models usually causes OOM on consumer GPUs. I implemented strict Singleton caching and `try...finally` memory release (`torch.cuda.empty_cache()`) to guarantee stable sequential execution.
+<kbd><img alt="VRAM Management Log" width="700" src="https://github.com/user-attachments/assets/4a811d63-440c-4243-8f66-889c211db946" /></kbd>
+*Proof of VRAM Management: Dynamically unloading the 8B LLM to allocate memory for the TTS engine.*
 
 * **Thread-Safe Human-in-the-Loop (HITL):** Built programmatic LangGraph checkpointer pauses. In the Gradio UI, the AI halts execution, displays the report, and uses `Session UUIDs` to wait for a Doctor's approval before resuming the graph to synthesize audio.
 
 * **Anti-Hallucination Prompting:** Strict output templates and Few-Shot Negative Prompting are enforced to prevent small models (8B) from inventing fake medical prices or dropping Vietnamese diacritics.
+<kbd><img alt="Prompt Engineering Output" width="700" src="https://github.com/user-attachments/assets/d279c2c3-5164-4011-98fa-a86160f8d063" /></kbd>
+*Left: Raw OCR with missing diacritics. Right: AI strictly following instructions to output "Không có thông tin" instead of hallucinating prices.*
 
 * **Mock-Driven CI/CD Pipelines:** Deep learning libraries (Torch, Triton, Xformers) break standard CI runners. I engineered a robust `pytest` suite with `unittest.mock` to bypass C++ library dependencies, achieving lightning-fast, green CI/CD builds on GitHub Actions.
+<kbd><img alt="Automated Testing & CI/CD Pipeline" width="700" src="https://github.com/user-attachments/assets/5b94fd5d-b7bc-4715-affe-dfb3fd16d839" /></kbd>
+*Automated Pytest Execution: Mocking heavy ML models to achieve fast and reliable CI/CD test runs.*
 
 * **Observability over Print:** Completely eradicated `print()` statements in favor of Python's standard `logging` module with traceback (`exc_info=True`) for production-grade monitoring.
 ## 🎯 Expected Output & Demo
 
 <div align="center">
   <img src="data/images/test_receipt.jpg" alt="Test receipt" width="400">
-  <i>Input: Raw, unstandardized medical receipt</i>
+  <br><i>Input: Raw, unstandardized medical receipt</i>
+  <video width="800" controls="controls" alt="OmniMed Gradio UI Demo" src="https://github.com/user-attachments/assets/483fdc3a-6fa8-44b2-a287-a656af702bd1">
+  <br><i>Real-time execution: LangGraph Agent pausing for Human-in-the-Loop approval before generating VoxCPM Voice Alerts.</i>
 </div>
+
+
 
 **Generated Clinical Report (Raw Output from 8B 4-bit Quantized Model):**
 ```text
