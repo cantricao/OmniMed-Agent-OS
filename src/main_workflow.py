@@ -76,27 +76,28 @@ def vision_node(state: MedicalState) -> Dict[str, Any]:
 # =====================================================================
 def redact_sensitive_info(text: str) -> str:
     """
-    Lightweight Regex-based engine to mask Protected Health Information (PHI).
-    Designed for local edge execution without requiring heavy NLP models.
+    Redacts Personally Identifiable Information (PII) using heuristic Regex.
+
+    [ENTERPRISE TODO]: Regex is brittle for production healthcare data.
+    In a real clinical environment, replace this heuristic layer with an
+    advanced NER engine like Microsoft Presidio or AWS Comprehend Medical
+    to securely catch edge cases (e.g., spaced phone numbers, contextual names).
     """
+    logger.info("🛡️ [Security Node] Executing PII redaction heuristics...")
+
     if not text:
-        return ""
+        return text
 
-    # 1. Mask Vietnamese & Universal Phone Numbers (e.g., 09xxxx, +84...)
-    text = re.sub(r"(\+84|0[3|5|7|8|9])+([0-9]{8})\b", "[REDACTED_PHONE]", text)
+    # Redact standard phone numbers
+    redacted_text = re.sub(r"\b(0[3|5|7|8|9])+([0-9]{8})\b", "[REDACTED_PHONE]", text)
 
-    # 2. Mask Email Addresses
-    text = re.sub(
-        r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", "[REDACTED_EMAIL]", text
+    # Redact common Vietnamese names (simplified example)
+    redacted_text = re.sub(
+        r"(Bệnh nhân|Họ và tên|Tên bệnh nhân):\s*([A-ZÀÁÂÃÈÉÊÌÍÒÓÔÕÙÚĂĐĨŨƠƯĂẠẢẤẦẨẪẬẮẰẲẴẶẸẺẼỀỀỂỄỆỈỊỌỎỐỒỔỖỘỚỜỞỠỢỤỦỨỪỬỮỰỲỴÝỶỸa-zàáâãèéêìíòóôõùúăđĩũơưăạảấầẩẫậắằẳẵặẹẻẽềềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ\s]+)",
+        r"\1: [REDACTED_NAME]",
+        redacted_text,
     )
-
-    # 3. Mask Citizen ID Cards (CCCD - 12 digits) or standard 9-digit IDs
-    text = re.sub(r"\b\d{9,12}\b", "[REDACTED_ID]", text)
-
-    # 4. Mask Dates (DOB, Examination Dates) - formats: dd/mm/yyyy or dd-mm-yyyy
-    text = re.sub(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", "[REDACTED_DATE]", text)
-
-    return text
+    return redacted_text
 
 
 def sanitization_node(state: MedicalState) -> Dict[str, Any]:
@@ -276,22 +277,25 @@ if __name__ == "__main__":
         initial_run_state = omnimed_app.invoke(test_state, config=thread_config)
 
         # Display the AI's clinical reasoning for the Doctor to review
-        print("\n" + "=" * 50)
-        print("📋 [PENDING DOCTOR APPROVAL] CLINICAL REPORT:")
-        print("=" * 50)
-        print(initial_run_state.get("final_diagnosis", "No diagnosis generated."))
+        # Output the report to terminal securely
+        logger.info("📋 [PENDING DOCTOR APPROVAL] CLINICAL REPORT:")
+        logger.info("=" * 50)
+        logger.info(
+            f"\n{initial_run_state.get('final_diagnosis', 'No diagnosis generated.')}"
+        )
 
         # Manually prompt the user (Doctor) in the CLI
-        print("\n" + "=" * 50)
+        logger.info("\n" + "=" * 50)
 
         auto_approve = os.getenv("AUTO_APPROVE", "false").lower() in ("true", "1", "t")
 
         if auto_approve:
-            print(
+            logger.info(
                 "🤖 [Colab Mode] AUTO_APPROVE enabled. Automatically generating Voice Alert..."
             )
             user_input = "y"
         else:
+            # We must use standard input() here for CLI interaction to pause execution
             user_input = input(
                 "👨‍⚕️ ACTION REQUIRED: Approve this report to generate Voice Alert? (y/n): "
             )
@@ -303,10 +307,10 @@ if __name__ == "__main__":
             # Second invocation: Passing None with the same config resumes the paused graph
             final_state = omnimed_app.invoke(None, config=thread_config)
 
-            print("\n" + "=" * 50)
-            print("🔊 FINAL VOICE SUMMARY (TTS)")
-            print("=" * 50)
-            print(final_state.get("voice_summary"))
+            logger.info("\n" + "=" * 50)
+            logger.info("🔊 FINAL VOICE SUMMARY (TTS)")
+            logger.info("=" * 50)
+            logger.info(final_state.get("voice_summary"))
             logger.info(f"🎙️ AUDIO ALERT PATH: {final_state.get('voice_alert_path')}")
         else:
             logger.warning("❌ Doctor Rejected the report. Voice synthesis cancelled.")
